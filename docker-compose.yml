@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    container_name: meetique-v2-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: meetique
+      POSTGRES_PASSWORD: meetique
+      POSTGRES_DB: meetique
+    ports:
+      - "5433:5432"
+    volumes:
+      - meetique_v2_pgdata:/var/lib/postgresql/data
+volumes:
+  meetique_v2_pgdata:
