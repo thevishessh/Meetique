@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getUser, homeFor } from "@/lib/auth";
-import { APP_NAME, APP_TAGLINE } from "@/lib/config";
+import { ALLOW_ORG_SIGNUP, APP_NAME, APP_TAGLINE, CLIENT_ORG_SLUG, PUBLIC_BOOKING } from "@/lib/config";
 import { ButtonLink, Card, Logo } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,12 @@ const FEATURES = [
 ];
 
 export default async function Home() {
+  if (!PUBLIC_BOOKING) {
+    // Internal mode: everything is behind staff login
+    const me = await getUser();
+    redirect(me ? homeFor(me.role) : "/login");
+  }
+  if (CLIENT_ORG_SLUG) redirect(`/o/${CLIENT_ORG_SLUG}`);
   const [user, orgs] = await Promise.all([getUser(), prisma.organization.findMany({ select: { name: true, slug: true }, orderBy: { createdAt: "asc" }, take: 6 })]);
   return (
     <div className="min-h-screen">
@@ -27,7 +34,7 @@ export default async function Home() {
           ) : (
             <>
               <ButtonLink href="/login" variant="ghost">Sign in</ButtonLink>
-              <ButtonLink href="/register">Register organization</ButtonLink>
+              {ALLOW_ORG_SIGNUP && <ButtonLink href="/register">Register organization</ButtonLink>}
             </>
           )}
         </nav>
@@ -41,7 +48,7 @@ export default async function Home() {
             {APP_NAME} lets universities, hospitals, offices and professionals publish officer availability, take bookings, issue QR tokens and run the reception queue — from one place.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/register" size="lg">Create your organization</ButtonLink>
+            {ALLOW_ORG_SIGNUP && <ButtonLink href="/register" size="lg">Create your organization</ButtonLink>}
             {orgs[0] && <ButtonLink href={`/o/${orgs[0].slug}`} size="lg" variant="secondary">Try the booking portal</ButtonLink>}
           </div>
         </section>

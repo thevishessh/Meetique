@@ -23,7 +23,10 @@ async function authorize(id: string, code: string | null | undefined) {
   if (!a) throw new AppError("NOT_FOUND", "Appointment not found", 404);
   if (code && code === a.manageCode) return { a, actor: null };
   const user = await getUser();
-  if (user && user.organizationId === a.organizationId && (user.role !== "OFFICER" || user.officerId === a.officerId)) return { a, actor: user };
+  if (user && user.organizationId === a.organizationId) {
+    if (a.visitor.userId === user.id) return { a, actor: null }; // the attendee — same rights as the manage code
+    if (user.role === "ADMIN" || user.role === "RECEPTIONIST" || (user.role === "OFFICER" && user.officerId === a.officerId)) return { a, actor: user };
+  }
   throw new AppError("NOT_FOUND", "Appointment not found", 404);
 }
 

@@ -1,98 +1,204 @@
-# Meetique — Multi-Officer Appointment, QR Token & Queue System
+# CU Unnao Meetings
 
-*Smart Scheduling. Instant Tokens. Organized Meetings.*
+**Staff meeting booking, immediate meetings, and QR token check-in for Chandigarh University, Unnao Campus.**
 
-Any organization (university, hospital, office, government department, or individual professional) can publish its officers' availability, take online bookings, issue QR tokens, and run the reception queue.
+Built on **Meetique**, a multi-officer appointment, QR token and queue system. This repo is configured as an **internal system**: only signed-in university staff can book meetings with officers, and designated officers (e.g. the Campus Director and Registrar) can call anyone in for an immediate meeting.
+
+> 📘 A full guide in Hindi covers who logs in where, which file does what, what to change where, and how to go live: **[docs/CU-UNNAO-GUIDE.md](docs/CU-UNNAO-GUIDE.md)**
+
+---
 
 ## Quick start
 
-Requires Node 20+ and Docker Desktop.
+Requires **Node 20+** and **Docker Desktop** (for PostgreSQL).
 
 ```bash
 npm install
-npm run db:up          # Postgres 17 in Docker on port 5433 (container: meetique-v2-db)
-npm run db:deploy      # apply migrations (incl. double-booking constraint)
-npm run db:seed        # demo organization "ABC University"
-npm run dev            # http://localhost:3000
+npm run db:up        # PostgreSQL 17 in Docker, port 5433 (container: meetique-v2-db)
+npm run db:deploy    # apply database migrations
+npm run db:seed      # create the CU Unnao setup (skipped if it already exists)
+npm run dev          # http://localhost:3001
 ```
 
-Copy `.env.example` to `.env` first if `.env` is missing, and set `AUTH_SECRET`.
+If `.env` is missing, copy `.env.example` to `.env` and set `AUTH_SECRET` (any random string of 32+ characters).
 
-### Demo logins (password `Demo@1234`)
+The app runs on **port 3001**, so it doesn't clash with other projects that use 3000.
 
-| Role | Email |
+---
+
+## How to log in
+
+Open **http://localhost:3001** to reach the sign-in page.
+
+**Password for every seeded account:** `CUUnnao@2026` (set by `CLIENT_INITIAL_PASSWORD` in `.env`). After the first login, click your name (top right), choose **My account**, and change it.
+
+| Role | Email | Lands on |
+|---|---|---|
+| Admin (Campus IT) | `admin@cuunnao.test` | `/admin` |
+| Officer: Campus Director, **can call immediate meetings** | `director@cuunnao.test` | `/officer` |
+| Officer: Registrar, **can call immediate meetings** | `registrar@cuunnao.test` | `/officer` |
+| Officers | `admissions@` · `exams@` · `accounts@` · `placements@` · `hostel@` · `dsw@` + `cuunnao.test` | `/officer` |
+| Receptionist | `frontoffice@cuunnao.test`, `reception@cuunnao.test` | `/reception` |
+| Staff (**sample**, for testing) | `faculty.cse@`, `faculty.mgmt@`, `library@` + `cuunnao.test` | `/me` |
+
+> The `@cuunnao.test` emails and desk names are **placeholders**. Import the real staff list with **Admin → Staff → Bulk import (CSV)**, then deactivate the sample accounts.
+
+---
+
+## What it does
+
+### Roles
+
+| Role | Can do |
 |---|---|
-| Organization admin | admin@abc.test |
-| Officer – Registrar | registrar@abc.test |
-| Officer – HR Manager | hr@abc.test |
-| Officer – Controller of Exams (2 per slot) | exam@abc.test |
-| Receptionist / token operator | reception@abc.test |
+| **STAFF** | Book a meeting with an officer, see **My meetings**, cancel own bookings, respond to immediate-meeting calls |
+| **OFFICER** | Live queue, start / complete meetings, set own availability, and book meetings with other officers |
+| **OFFICER (designated)** | Everything above, plus **Call immediate meeting** with anyone |
+| **RECEPTIONIST** | Scan QR tokens, check in, mark people waiting, register walk-ins |
+| **ADMIN** | Staff accounts and CSV import, officers and designated rights, departments, holidays, reports, settings |
 
-Public booking portal: http://localhost:3000/o/abc-university
+### Flow 1: Staff books a meeting
+Sign in → **Book a meeting** → department → officer → date and free slot → write the agenda. Name, email and employee ID come from the account. The system issues a token (`CUU-2026-000001`) and a QR slip. The meeting appears in **My meetings**, then the visitor is checked in at reception or by the officer's office, and the officer starts and completes the meeting.
 
-### Useful scripts
+### Flow 2: Designated officer calls an immediate meeting
+**Call immediate meeting** → search anyone (name, designation, department, employee ID) → **Right now** or a set time → purpose. Working hours and slot rules are skipped. The person gets a **red URGENT banner on every screen**, with a beep and a browser notification, and answers **Acknowledge** / **On my way**. The officer sees the response live. The attendee cannot cancel or reschedule it.
+
+### Also included
+- **Slot engine:** weekly hours, lunch break, meeting length, buffer, seats per slot, daily limit, advance window, minimum notice, same-day rule, per-officer leave, special hours
+- **Campus-wide holidays:** close normal booking for every officer
+- **No double booking:** row lock per officer plus a PostgreSQL exclusion constraint (`npm run test:concurrency` proves it)
+- **Reception desk:** camera QR scanner (works on phones over HTTPS), manual token entry, walk-ins, live queue
+- **Reports:** status breakdown, officer workload, no-show rate, CSV export for Excel (employee ID, designation, meeting type)
+- **Audit trail:** every status change and every immediate-meeting call is logged
+- **Email notifications:** sent when `RESEND_API_KEY` is set (otherwise logged as `SKIPPED`)
+
+---
+
+## Configuration (`.env`)
+
+| Setting | CU Unnao value | Meaning |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://meetique:meetique@localhost:5433/meetique` | Database connection |
+| `AUTH_SECRET` | random | Signs login cookies. Generate a new one for production |
+| `APP_URL` | `http://localhost:3001` | Base URL used in QR codes and emails (`https://<domain>` in production) |
+| `PUBLIC_BOOKING` | `false` | **Internal mode**: nothing is accessible without login. `true` = public visitor portal |
+| `CLIENT_ORG_SLUG` | `cu-unnao` | The organization this deployment serves |
+| `ALLOW_ORG_SIGNUP` | `false` | Turns off `/register` for new organizations |
+| `SEED_PROFILE` | `cu-unnao` | Data created by `npm run db:seed` (`cu-unnao` or `demo`) |
+| `NEXT_PUBLIC_APP_NAME` | `CU Unnao Meetings` | Name in the logo and browser tab |
+| `NEXT_PUBLIC_APP_TAGLINE` | `Staff meeting booking & immediate meetings.` | Tagline |
+| `CLIENT_INITIAL_PASSWORD` | `CUUnnao@2026` | First password for seeded accounts |
+| `RESEND_API_KEY`, `EMAIL_FROM` | *(empty)* | Email notifications via Resend |
+
+The client's starting data (departments, desks, hours, designated officers, holidays, sample staff) lives in **`prisma/seeds/cu-unnao.ts`**. Edit it before the first seed, or change everything later from the admin panel.
+
+---
+
+## Scripts
 
 | Command | What it does |
 |---|---|
-| `npm run test:concurrency` | Fires 20 simultaneous bookings at one slot and checks exactly 1 wins; checks a capacity-2 slot; checks a raw SQL insert is blocked by Postgres |
-| `npm run db:reset` | Drop, re-migrate and re-seed the database |
+| `npm run dev` | Start the app on port 3001 |
+| `npm run build` / `npm start` | Production build / serve on port 3001 |
+| `npm run db:up` | Start PostgreSQL in Docker |
+| `npm run db:deploy` | Apply migrations |
+| `npm run db:seed` | Seed the `SEED_PROFILE` organization (skips if it exists) |
+| `npm run db:reset` | ⚠️ **Deletes the whole database**, then re-migrates and re-seeds. Development only, never on a live server |
+| `npm run test:concurrency` | Double-booking stress test: 20 simultaneous requests for one slot → exactly 1 succeeds; multi-seat slots fill exactly; raw SQL overlaps are rejected |
 | `npm run typecheck` | TypeScript check |
+| `npx prisma studio` | Browse the database tables |
 
-## How the blueprint maps to the code
+---
 
-| Blueprint | Where |
+## Tech stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL 17 · Prisma 7 · jose (JWT session) + bcryptjs · qrcode + jsQR · Luxon · Zod · Resend
+
+---
+
+## Where things live
+
+| Area | Files |
 |---|---|
-| Roles: Admin, Officer, Visitor, Receptionist | `Role` enum in `prisma/schema.prisma`; visitors need no account |
-| Tables (organizations … notifications) | `prisma/schema.prisma` (+ `token_counters` for sequences) |
-| UTC storage + org timezone | All `timestamptz`; `organizations.timezone`; `src/lib/time.ts` |
-| Slot engine (hours, breaks, duration, buffer, capacity, max/day, advance limit, min notice, same-day, holidays, overrides) | `src/lib/slots.ts` |
-| Atomic booking + token generation | `src/lib/booking.ts` → `bookAppointment()` |
-| No double booking (DB level) | officer row lock (`SELECT … FOR UPDATE`) + exclusion constraint `appointments_no_overlap` in `prisma/migrations/*_init/migration.sql` |
-| Token format `ORG-YEAR-SEQUENCE` | `src/lib/tokens.ts`, per-org/year counter (atomic upsert) |
-| QR with no personal data | QR holds `/t/<random secret>` only; visitor manage link uses a *separate* secret |
-| Status flow Booked → Checked-in → Waiting → In Progress → Completed / Cancelled / No Show | `src/lib/status.ts` (transitions + per-role permissions), audit trail in `appointment_logs` |
-| Cancel releases slot | Constraint only covers active statuses; token is revoked |
-| Email notifications | `src/lib/notify.ts` (Resend). Without `RESEND_API_KEY`, attempts are logged as `SKIPPED` |
-| Reports + Excel export | `/admin/reports`, `GET /api/reports?format=csv` |
+| Deployment mode and branding | `src/lib/config.ts` |
+| Login, session, roles | `src/lib/auth.ts`, `src/app/api/auth/*`, `src/app/account/*` |
+| Slot generation | `src/lib/slots.ts` |
+| Booking, immediate meetings, responses, status changes | `src/lib/booking.ts` (`bookAppointment`, `summonMeeting`, `respondToMeeting`, `changeStatus`) |
+| Status rules and per-role permissions | `src/lib/status.ts` |
+| Token numbers and QR | `src/lib/tokens.ts` |
+| Urgent alert banner | `src/components/urgent-alert.tsx` (inside `src/components/app-shell.tsx`) |
+| Navigation per role | `src/components/app-shell.tsx` → `navFor()` |
+| Reports / CSV | `src/lib/reports.ts` |
+| Email | `src/lib/notify.ts` |
+| Input validation | `src/lib/validation.ts` |
+| Database schema and migrations | `prisma/schema.prisma`, `prisma/migrations/` (the double-booking constraint is in `*_init`) |
+| Seed profiles | `prisma/seed.ts` → `prisma/seeds/cu-unnao.ts`, `prisma/seeds/demo.ts` |
+
+### Pages
+
+| URL | Who | What |
+|---|---|---|
+| `/login` | everyone | Sign in |
+| `/me` | all signed-in users | My meetings + urgent alerts |
+| `/o/cu-unnao` → `/o/cu-unnao/<officer>` | signed-in users | Book a meeting |
+| `/a/<code>` | attendee | Token slip with QR (print / cancel) |
+| `/t/<secret>` | anyone with the QR | Token verification (full details + check-in for staff) |
+| `/officer`, `/officer/appointments`, `/officer/availability` | officers | Queue, appointments, availability |
+| `/officer/summon` | designated officers | Call an immediate meeting |
+| `/reception` | receptionists, admins | QR scanner, check-in, walk-ins, live queue |
+| `/admin/*` | admins | Overview, appointments, officers, departments, staff, holidays, reports, settings |
+| `/account` | all signed-in users | Change password |
 
 ### API endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| POST | `/api/auth/login`, `/api/auth/logout` | Staff sign in / out (JWT cookie) |
-| POST | `/api/organizations` | Register organization + first admin |
-| PATCH | `/api/organizations/current` | Org settings |
-| GET/POST | `/api/officers` | List (public with `?org=slug`) / create officer |
-| PATCH/DELETE | `/api/officers/:id` | Update profile + slot rules / deactivate |
-| GET/POST | `/api/departments`, PATCH/DELETE `/api/departments/:id` | Departments |
-| POST | `/api/staff`, PATCH `/api/staff/:id` | Admins & receptionists, password reset |
-| GET/POST | `/api/availability` | Weekly hours + booking rules |
-| POST/DELETE | `/api/availability/blocks[/:id]` | Holidays, leave, breaks, special hours |
-| GET | `/api/slots?officerId=&date=` | Generated slots for a day |
-| POST | `/api/appointments` | Book (public) or walk-in (`walkIn: true`, staff) |
-| GET | `/api/appointments` | Staff list (`date`, `officerId`, `status`) |
-| GET/PATCH | `/api/appointments/:id` | View / reschedule (visitor passes `code`) |
-| POST | `/api/appointments/:id/cancel` | Cancel (visitor `code` or staff session) |
-| PATCH | `/api/appointments/:id/status` | Status change |
-| GET | `/api/tokens/:token` | Verify QR secret / token number |
+| POST | `/api/auth/login`, `/api/auth/logout` | Sign in / out |
+| POST | `/api/auth/password` | Change own password |
+| GET/POST | `/api/officers` · PATCH/DELETE `/api/officers/:id` | Officers (incl. `canSummon`) |
+| GET/POST | `/api/departments` · PATCH/DELETE `/api/departments/:id` | Departments |
+| POST | `/api/staff` · PATCH `/api/staff/:id` | Staff / receptionist / admin accounts |
+| POST | `/api/staff/import` | Bulk-import staff from CSV |
+| GET/POST | `/api/availability` · POST/DELETE `/api/availability/blocks[/:id]` | Weekly hours, rules, leave, special hours |
+| GET/POST | `/api/holidays` · DELETE `/api/holidays/:id` | Campus-wide holidays |
+| GET | `/api/slots?officerId=&date=` | Free slots for a day |
+| GET/POST | `/api/appointments` | List (staff views) / book a meeting or walk-in |
+| GET/PATCH | `/api/appointments/:id` | View / reschedule |
+| POST | `/api/appointments/:id/cancel` | Cancel |
+| PATCH | `/api/appointments/:id/status` | Check-in → waiting → in progress → completed, no-show |
+| POST | `/api/summons` | Designated officer calls an immediate meeting |
+| GET | `/api/me/urgent` | Pending immediate meetings for the signed-in user |
+| POST | `/api/appointments/:id/respond` | Attendee answers: Acknowledged / On my way |
+| GET | `/api/tokens/:token` | Verify a QR token |
 | POST | `/api/check-in` | QR / token check-in |
-| POST | `/api/lookup` | Visitor "find my booking" (token + mobile) |
-| GET | `/api/reports` | JSON or CSV report |
+| GET | `/api/reports?from=&to=&format=csv` | Report (JSON or CSV) |
+| PATCH | `/api/organizations/current` | Organization settings |
 
-## Pages
+`POST /api/organizations` (new organizations) and `POST /api/lookup` ("find my booking") exist for public mode and are disabled for CU Unnao.
 
-- `/` landing · `/register` new organization · `/login` staff
-- `/o/<slug>` visitor portal → officer → slot → details → `/a/<code>` token slip (print / reschedule / cancel)
-- `/o/<slug>/find` find booking by token + mobile
-- `/t/<secret>` QR target: public validity check; same-org staff see details + check-in
-- `/admin` overview, appointments, officers (+ availability), departments, staff, reports, settings
-- `/officer` live queue, appointments by date, availability
-- `/reception` camera QR scanner (jsQR) + manual token entry, walk-ins, live queue
+---
 
-## Not built yet (next phases)
+## Going live (short version)
 
-- SMS / WhatsApp notifications (the `notifications.channel` enum is ready)
+1. Server with Node 20+ and PostgreSQL.
+2. `npm install`, then create `.env` with a new `AUTH_SECRET`, the real `DATABASE_URL`, `APP_URL=https://<domain>`, and a strong `CLIENT_INITIAL_PASSWORD`.
+3. `npx prisma migrate deploy`, then `npm run db:seed` (first time only).
+4. Admin → **Staff → Bulk import** to add the real staff, then deactivate the sample accounts.
+5. `npm run build`, then `npm start` (keep it running with pm2 or systemd).
+6. **HTTPS is required.** Without it, the camera QR scanner and browser notifications won't work.
+7. Set up daily database backups (`pg_dump`).
+
+---
+
+## Other mode: public demo
+
+The same code can run as a **public** visitor-booking portal for any organization. Set `PUBLIC_BOOKING="true"`, `ALLOW_ORG_SIGNUP="true"`, `CLIENT_ORG_SLUG=""` and `SEED_PROFILE="demo"`. The demo seed creates "ABC University" with sample bookings; its logins (`admin@abc.test`, `registrar@abc.test`, `reception@abc.test`, …) use password `Demo@1234`.
+
+---
+
+## Not built yet
+
+- SMS / WhatsApp alerts (the urgent alert currently needs the app open in a browser; email works with Resend)
 - Google / Outlook calendar sync
 - PDF export of reports (CSV opens in Excel)
-- Auth.js / social login (currently a small JWT-cookie session in `src/lib/auth.ts`)
-- Platform-level super admin across organizations
+- Campus logo upload

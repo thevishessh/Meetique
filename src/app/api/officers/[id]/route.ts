@@ -10,8 +10,8 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   const user = await requireApiUser("ADMIN", "OFFICER");
   const officer = await resolveOfficer(user, (await params).id);
   const d = officerUpdateSchema.parse(await readJson(req));
-  if (user.role !== "ADMIN" && (d.isActive !== undefined || d.departmentId !== undefined)) {
-    return fail(403, "FORBIDDEN", "Only an admin can change department or account status");
+  if (user.role !== "ADMIN" && (d.isActive !== undefined || d.departmentId !== undefined || d.canSummon !== undefined)) {
+    return fail(403, "FORBIDDEN", "Only an admin can change department, account status or immediate-meeting rights");
   }
   if (d.departmentId && !(await prisma.department.findFirst({ where: { id: d.departmentId, organizationId: user.organizationId } }))) {
     return fail(422, "VALIDATION", "Unknown department");

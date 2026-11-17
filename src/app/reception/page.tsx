@@ -16,7 +16,7 @@ export default async function Reception({ searchParams }: { searchParams: Promis
   const tz = user.org.timezone;
   const today = todayIn(tz);
   const { start, end } = dayBounds(today, tz);
-  const [rows, officers] = await Promise.all([
+  const [rows, officers, org] = await Promise.all([
     prisma.appointment.findMany({
       where: { organizationId: user.organizationId, startAt: { gte: start, lt: end }, officerId: officer || undefined },
       include: apptInclude,
@@ -27,6 +27,7 @@ export default async function Reception({ searchParams }: { searchParams: Promis
       include: { user: { select: { name: true } } },
       orderBy: { user: { name: "asc" } },
     }),
+    prisma.organization.findUniqueOrThrow({ where: { id: user.organizationId }, select: { visitorCategories: true, referenceLabel: true } }),
   ]);
   const c = (s: string[]) => rows.filter((r) => s.includes(r.status)).length;
 
@@ -37,7 +38,7 @@ export default async function Reception({ searchParams }: { searchParams: Promis
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Scanner />
-        <WalkIn officers={officers.map((o) => ({ id: o.id, name: `${o.user.name} — ${o.designation}` }))} today={today} />
+        <WalkIn officers={officers.map((o) => ({ id: o.id, name: `${o.user.name} — ${o.designation}` }))} today={today} fields={org} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

@@ -1,9 +1,12 @@
+import { notFound } from "next/navigation";
 import FindForm from "./find-form";
+import { PUBLIC_BOOKING } from "@/lib/config";
 import { Card } from "@/components/ui";
 
 export const metadata = { title: "Find my booking" };
 
 export default async function FindPage({ params }: { params: Promise<{ slug: string }> }) {
+  if (!PUBLIC_BOOKING) notFound();
   const { slug } = await params;
   return (
     <div className="mx-auto max-w-md">

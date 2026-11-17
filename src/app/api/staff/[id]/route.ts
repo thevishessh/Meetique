@@ -14,7 +14,15 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   if (target.id === admin.id && d.isActive === false) return fail(409, "SELF", "You cannot deactivate your own account");
   await prisma.user.update({
     where: { id },
-    data: { name: d.name, isActive: d.isActive, ...(d.password ? { passwordHash: await hashPassword(d.password) } : {}) },
+    data: {
+      name: d.name,
+      isActive: d.isActive,
+      employeeId: d.employeeId,
+      jobTitle: d.jobTitle,
+      phone: d.phone,
+      departmentId: d.departmentId,
+      ...(d.password ? { passwordHash: await hashPassword(d.password) } : {}),
+    },
   });
   if (target.role === "OFFICER" && d.isActive === false) await prisma.officerProfile.updateMany({ where: { userId: id }, data: { isBookable: false } });
   return ok({ ok: true });

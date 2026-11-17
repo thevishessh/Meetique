@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { api, formData } from "@/components/client-api";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea } from "@/components/ui";
 
-type O = { id: string; userId: string; name: string; email: string; phone: string | null; designation: string; departmentId: string | null; location: string | null; bio: string | null; isActive: boolean };
+type O = { id: string; userId: string; name: string; email: string; phone: string | null; designation: string; departmentId: string | null; location: string | null; bio: string | null; isActive: boolean; canSummon: boolean };
 
 export function OfficerProfileForm({ officer, departments }: { officer: O; departments: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function OfficerProfileForm({ officer, departments }: { officer: O; depar
         onSubmit={(e) => {
           e.preventDefault();
           const d = formData(e.currentTarget);
-          act(() => api(`/api/officers/${officer.id}`, { method: "PATCH", body: { ...d, departmentId: d.departmentId || null } }), "Profile saved.");
+          act(() => api(`/api/officers/${officer.id}`, { method: "PATCH", body: { ...d, departmentId: d.departmentId || null, canSummon: d.canSummon === "on" } }), "Profile saved.");
         }}
       >
         {msg && <div className="sm:col-span-2 lg:col-span-3"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
@@ -69,6 +69,10 @@ export function OfficerProfileForm({ officer, departments }: { officer: O; depar
         <Field label="Phone"><Input name="phone" defaultValue={officer.phone ?? ""} /></Field>
         <Field label="Room / location"><Input name="location" defaultValue={officer.location ?? ""} /></Field>
         <Field label="Short bio" className="sm:col-span-2 lg:col-span-3"><Textarea name="bio" rows={2} defaultValue={officer.bio ?? ""} /></Field>
+        <label className="flex items-start gap-3 rounded-lg bg-rose-50 px-4 py-3 text-sm ring-1 ring-inset ring-rose-200 sm:col-span-2 lg:col-span-3">
+          <input type="checkbox" name="canSummon" defaultChecked={officer.canSummon} className="mt-0.5 h-4 w-4 accent-rose-600" />
+          <span><b>Designated officer: can call immediate meetings</b><br /><span className="text-slate-600">Lets this officer call anyone in the university for an urgent meeting, ignoring slots and working hours.</span></span>
+        </label>
         <div><Button disabled={busy}>Save profile</Button></div>
       </form>
     </Card>

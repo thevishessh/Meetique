@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getOpenDays } from "@/lib/slots";
 import { todayIn } from "@/lib/time";
 import BookingWizard from "./booking-wizard";
+import { getUser } from "@/lib/auth";
+import { PUBLIC_BOOKING } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +13,11 @@ export default async function OfficerBooking({ params }: { params: Promise<{ slu
   const { slug, officerId } = await params;
   const officer = await prisma.officerProfile.findFirst({
     where: { id: officerId, isBookable: true, user: { isActive: true, organization: { slug } } },
-    include: { department: { select: { name: true } }, user: { select: { name: true, organization: { select: { timezone: true } } } } },
+    include: { department: { select: { name: true } }, user: { select: { name: true, organization: { select: { timezone: true, visitorCategories: true, referenceLabel: true } } } } },
   });
   if (!officer) notFound();
   const tz = officer.user.organization.timezone;
+  const me = PUBLIC_BOOKING ? null : await getUser();
   const start = todayIn(tz);
   const days = await getOpenDays(officer.id, start, Math.min(14, officer.advanceBookingDays + 1));
 
@@ -35,7 +38,7 @@ export default async function OfficerBooking({ params }: { params: Promise<{ slu
         </div>
       </div>
       {officer.bio && <p className="mt-3 max-w-2xl text-sm text-slate-600">{officer.bio}</p>}
-      <BookingWizard officerId={officer.id} startDate={start} days={days} duration={officer.slotDurationMin} />
+      <BookingWizard officerId={officer.id} startDate={start} days={days} duration={officer.slotDurationMin} fields={{ visitorCategories: officer.user.organization.visitorCategories, referenceLabel: officer.user.organization.referenceLabel }} identity={me ? { name: me.name, email: me.email } : null} />
     </div>
   );
 }

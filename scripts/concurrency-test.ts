@@ -11,9 +11,11 @@ import { prisma } from "../src/lib/db";
 import { bookAppointment } from "../src/lib/booking";
 import { getDaySlots } from "../src/lib/slots";
 
+let TZ = "Asia/Kolkata";
+
 async function firstFreeSlot(officerId: string) {
   for (let i = 1; i < 30; i++) {
-    const date = DateTime.now().setZone("Asia/Kolkata").plus({ days: i }).toFormat("yyyy-MM-dd");
+    const date = DateTime.now().setZone(TZ).plus({ days: i }).toFormat("yyyy-MM-dd");
     const d = await getDaySlots(officerId, date);
     const s = d.slots.find((x) => x.available && x.booked === 0);
     if (s) return s;
@@ -35,9 +37,13 @@ async function race(officerId: string, n: number) {
 }
 
 async function main() {
-  const officers = await prisma.officerProfile.findMany({ include: { user: { select: { email: true } } } });
-  const registrar = officers.find((o) => o.user.email === "registrar@abc.test")!;
-  const exam = officers.find((o) => o.user.email === "exam@abc.test")!;
+  const slug = process.env.CLIENT_ORG_SLUG || "abc-university";
+  const org = await prisma.organization.findUniqueOrThrow({ where: { slug } });
+  TZ = org.timezone;
+  console.log(`Organization: ${org.name}`);
+  const officers = await prisma.officerProfile.findMany({ where: { organizationId: org.id, isBookable: true, allowSameDay: true }, include: { user: { select: { email: true } } } });
+  const registrar = officers.find((o) => o.capacityPerSlot === 1)!;
+  const exam = officers.find((o) => o.capacityPerSlot >= 2)!;
   let failed = false;
 
   const r1 = await race(registrar.id, 20);
@@ -46,10 +52,11 @@ async function main() {
   if (r1.ok[0]) console.log(`       token issued: ${r1.ok[0].value.token.tokenNumber}`);
   failed ||= !pass1;
 
+  const cap = exam.capacityPerSlot;
   const r2 = await race(exam.id, 10);
   const seats = r2.ok.map((r) => r.value.appointment.seatNo).sort();
-  const pass2 = r2.ok.length === 2 && seats.join() === "1,2";
-  console.log(`[${pass2 ? "PASS" : "FAIL"}] capacity 2: 10 concurrent requests → ${r2.ok.length} booked (seats ${seats.join(", ")}), ${r2.rejected.length} rejected`);
+  const pass2 = r2.ok.length === cap && seats.join() === Array.from({ length: cap }, (_, i) => i + 1).join();
+  console.log(`[${pass2 ? "PASS" : "FAIL"}] capacity ${cap}: 10 concurrent requests → ${r2.ok.length} booked (seats ${seats.join(", ")}), ${r2.rejected.length} rejected`);
   failed ||= !pass2;
 
   // 3. Bypass the app: insert an overlapping row directly

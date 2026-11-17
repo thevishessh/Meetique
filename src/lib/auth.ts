@@ -51,6 +51,8 @@ export type SessionUser = {
   role: Role;
   organizationId: string;
   officerId: string | null;
+  /** Designated officer who may call immediate meetings */
+  canSummon: boolean;
   org: { id: string; name: string; slug: string; timezone: string; shortCode: string };
 };
 
@@ -65,7 +67,7 @@ export async function getUser(): Promise<SessionUser | null> {
       where: { id: payload.sub },
       include: {
         organization: { select: { id: true, name: true, slug: true, timezone: true, shortCode: true } },
-        officerProfile: { select: { id: true } },
+        officerProfile: { select: { id: true, canSummon: true } },
       },
     });
     if (!u || !u.isActive) return null;
@@ -76,6 +78,7 @@ export async function getUser(): Promise<SessionUser | null> {
       role: u.role,
       organizationId: u.organizationId,
       officerId: u.officerProfile?.id ?? null,
+      canSummon: !!u.officerProfile?.canSummon,
       org: u.organization,
     };
   } catch {
@@ -100,5 +103,5 @@ export async function requirePageUser(...roles: Role[]): Promise<SessionUser> {
 }
 
 export function homeFor(role: Role) {
-  return role === "ADMIN" ? "/admin" : role === "OFFICER" ? "/officer" : "/reception";
+  return role === "ADMIN" ? "/admin" : role === "OFFICER" ? "/officer" : role === "STAFF" ? "/me" : "/reception";
 }

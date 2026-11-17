@@ -49,6 +49,8 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
               ["Status", <StatusBadge key="s" status={a.status} />],
               ["Visitor", staff ? a.visitor.name : mask(a.visitor.name)],
               ...(staff ? [["Mobile", a.visitor.phone]] : []),
+              ...(staff && a.visitorCategory ? [["Visitor type", a.visitorCategory]] : []),
+              ...(staff && a.referenceNo ? [["Reference", a.referenceNo]] : []),
               ["Organization", a.organization.name],
               ["Officer", `${a.officer.user.name} (${a.officer.designation})`],
               ["Date", fmtLongDate(a.startAt, tz)],

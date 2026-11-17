@@ -14,6 +14,7 @@ enum Role {
   ADMIN // organization super admin
   OFFICER // appointment host
   RECEPTIONIST // token operator
+  STAFF // employee who books meetings with officers
 }
 
 enum AppointmentStatus {
@@ -24,6 +25,18 @@ enum AppointmentStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+/// SCHEDULED = booked in a free slot; IMMEDIATE = a designated officer called someone in right away
+enum MeetingKind {
+  SCHEDULED
+  IMMEDIATE
+}
+
+/// The called person's reply to an immediate meeting
+enum AttendeeResponse {
+  ACKNOWLEDGED
+  ON_MY_WAY
 }
 
 enum AppointmentSource {
@@ -58,6 +71,10 @@ model Organization {
   email     String?
   phone     String?
   address   String?
+  /// Options for "I am a…" on the booking form (e.g. Student, Parent). Empty = field hidden.
+  visitorCategories String[] @default([]) @map("visitor_categories")
+  /// Label for an optional reference field (e.g. "Student UID / Application No."). Null = field hidden.
+  referenceLabel    String?  @map("reference_label")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   users         User[]
@@ -65,6 +82,7 @@ model Organization {
   visitors      Visitor[]
   appointments  Appointment[]
   tokenCounters TokenCounter[]
+  holidays      OrgHoliday[]
 
   @@map("organizations")
 }
@@ -77,13 +95,20 @@ model User {
   phone          String?
   passwordHash   String   @map("password_hash")
   role           Role
+  employeeId     String?  @map("employee_id")
+  jobTitle       String?  @map("job_title")
+  departmentId   String?  @map("department_id")
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department     Department?      @relation("UserDepartment", fields: [departmentId], references: [id], onDelete: SetNull)
   officerProfile OfficerProfile?
   logs           AppointmentLog[]
+  visitorCard    Visitor?
+  requested      Appointment[]    @relation("RequestedBy")
 
+  @@unique([organizationId, employeeId])
   @@index([organizationId, role])
   @@map("users")
 }
@@ -97,6 +122,7 @@ model Department {
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   officers     OfficerProfile[]
+  users        User[]           @relation("UserDepartment")
 
   @@unique([organizationId, name])
   @@map("departments")
@@ -120,6 +146,8 @@ model OfficerProfile {
   minNoticeMin      Int     @default(60) @map("min_notice_min")
   allowSameDay      Boolean @default(true) @map("allow_same_day")
   isBookable        Boolean @default(true) @map("is_bookable")
+  /// Designated officer: may call anyone for an immediate meeting
+  canSummon         Boolean @default(false) @map("can_summon")
 
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
@@ -167,11 +195,14 @@ model Visitor {
   id             String   @id @default(cuid())
   organizationId String   @map("organization_id")
   name           String
-  phone          String
+  phone          String?
   email          String?
+  /// Set when the attendee is a staff member with a login
+  userId         String?  @unique @map("user_id")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   appointments Appointment[]
 
   @@unique([organizationId, phone])
@@ -189,7 +220,14 @@ model Appointment {
   seatNo         Int               @default(1) @map("seat_no")
   status         AppointmentStatus @default(BOOKED)
   source         AppointmentSource @default(ONLINE)
+  kind           MeetingKind       @default(SCHEDULED)
+  /// Who created it (staff booking it, or the officer who called an immediate meeting)
+  requestedById  String?           @map("requested_by_id")
+  attendeeResponse AttendeeResponse? @map("attendee_response")
+  respondedAt    DateTime?         @map("responded_at") @db.Timestamptz
   purpose        String?
+  visitorCategory String?          @map("visitor_category")
+  referenceNo    String?           @map("reference_no")
   notes          String?
   /// Secret for the visitor's manage link (separate from the QR secret).
   manageCode     String            @unique @map("manage_code")
@@ -202,6 +240,7 @@ model Appointment {
 
   organization  Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   visitor       Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  requestedBy   User?            @relation("RequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
   officer       OfficerProfile   @relation(fields: [officerId], references: [id], onDelete: Cascade)
   tokens        Token[]
   logs          AppointmentLog[]
@@ -270,4 +309,18 @@ model Notification {
 
   @@index([appointmentId])
   @@map("notifications")
+}
+
+/// Organization-wide holiday (applies to every officer). date is "yyyy-MM-dd" in the org timezone.
+model OrgHoliday {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  date           String
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@map("org_holidays")
 }

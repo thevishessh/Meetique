@@ -5,6 +5,7 @@ import { qrDataUrl } from "@/lib/tokens";
 import { fmtLongDate, fmtRange, fmtDateTime, todayIn, localDateOf } from "@/lib/time";
 import { Alert, Card, Logo, StatusBadge } from "@/components/ui";
 import ManageActions from "./manage-actions";
+import { PUBLIC_BOOKING } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Appointment token", robots: { index: false } };
@@ -19,6 +20,7 @@ export default async function AppointmentSlip({ params, searchParams }: { params
       organization: true,
       tokens: { orderBy: { issuedAt: "desc" }, take: 1 },
       officer: { include: { user: { select: { name: true } }, department: { select: { name: true } } } },
+      requestedBy: { select: { name: true } },
     },
   });
   if (!a) notFound();
@@ -26,10 +28,12 @@ export default async function AppointmentSlip({ params, searchParams }: { params
   const token = a.tokens[0];
   const active = token?.isActive && !["CANCELLED", "NO_SHOW"].includes(a.status);
   const qr = active && token ? await qrDataUrl(token.qrSecret) : null;
-  const canChange = a.status === "BOOKED" && a.startAt > new Date();
+  const canChange = a.status === "BOOKED" && a.startAt > new Date() && a.kind !== "IMMEDIATE";
 
   const rows: [string, string][] = [
-    ["Visitor", a.visitor.name],
+    ...(a.kind === "IMMEDIATE" ? ([["Type", `Immediate meeting — called by ${a.requestedBy?.name ?? "officer"}`]] as [string, string][]) : []),
+    [PUBLIC_BOOKING ? "Visitor" : "Attendee", a.visitor.name + (a.visitorCategory ? ` (${a.visitorCategory})` : "")],
+    ...(a.referenceNo ? ([[a.organization.referenceLabel ?? "Reference", a.referenceNo]] as [string, string][]) : []),
     ["Organization", a.organization.name],
     ...(a.officer.department ? ([["Department", a.officer.department.name]] as [string, string][]) : []),
     ["Officer", `${a.officer.user.name}, ${a.officer.designation}`],

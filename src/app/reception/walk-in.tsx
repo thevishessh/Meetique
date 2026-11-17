@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import SlotPicker from "@/components/slot-picker";
 import { api, formData } from "@/components/client-api";
 import { Alert, Button, Card, CardHeader, Field, Input, Select } from "@/components/ui";
+import { VisitorExtraFields, type VisitorFieldConfig } from "@/components/visitor-extra-fields";
 
-export function WalkIn({ officers, today }: { officers: { id: string; name: string }[]; today: string }) {
+export function WalkIn({ officers, today, fields }: { officers: { id: string; name: string }[]; today: string; fields: VisitorFieldConfig }) {
   const router = useRouter();
   const [officerId, setOfficerId] = useState("");
   const [slot, setSlot] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function WalkIn({ officers, today }: { officers: { id: string; name: stri
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Visitor name"><Input name="name" required /></Field>
               <Field label="Mobile"><Input name="phone" type="tel" required /></Field>
+              <VisitorExtraFields config={fields} />
               <Field label="Purpose" className="sm:col-span-2"><Input name="purpose" /></Field>
             </div>
             <Button disabled={busy || !slot}>{busy ? "Issuing…" : "Issue token & check in"}</Button>

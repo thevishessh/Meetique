@@ -14,7 +14,7 @@ export default async function SettingsPage() {
       <PageHeader title="Organization settings" />
       <Card>
         <CardHeader title="Details" description={`Booking URL /o/${org.slug} · Token prefix ${org.shortCode} (fixed once tokens are issued)`} />
-        <SettingsForm org={{ name: org.name, timezone: org.timezone, email: org.email, phone: org.phone, address: org.address }} timezones={TIMEZONES.includes(org.timezone) ? TIMEZONES : [org.timezone, ...TIMEZONES]} />
+        <SettingsForm org={{ name: org.name, timezone: org.timezone, email: org.email, phone: org.phone, address: org.address, visitorCategories: org.visitorCategories, referenceLabel: org.referenceLabel }} timezones={TIMEZONES.includes(org.timezone) ? TIMEZONES : [org.timezone, ...TIMEZONES]} />
       </Card>
     </div>
   );

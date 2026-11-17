@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { requirePageUser } from "@/lib/auth";
 import { dayBounds, fmtLongDate, fmtRange, todayIn } from "@/lib/time";
 import { nextActions } from "@/lib/status";
-import { apptInclude, type ApptRow } from "@/components/appointment-table";
+import { apptInclude, ResponseBadge, type ApptRow } from "@/components/appointment-table";
 import { StatusActions } from "@/components/status-actions";
 import { AutoRefresh } from "@/components/nav-client";
 import { Badge, Card, CardHeader, Empty, PageHeader, Stat, StatusBadge } from "@/components/ui";
@@ -31,8 +31,10 @@ export default async function OfficerQueue() {
           <span className={`font-semibold text-slate-900 ${big ? "text-lg" : ""}`}>{r.visitor.name}</span>
           {r.tokens[0] && <Link href={`/t/${r.tokens[0].qrSecret}`} className="font-mono text-xs text-brand-700 hover:underline">{r.tokens[0].tokenNumber}</Link>}
           {r.source === "WALK_IN" && <Badge tone="amber">Walk-in</Badge>}
+          {r.kind === "IMMEDIATE" && <Badge tone="rose">Immediate</Badge>}
+          <ResponseBadge r={r} />
         </div>
-        <div className="text-sm text-slate-500">{fmtRange(r.startAt, r.endAt, tz)} · {r.visitor.phone}</div>
+        <div className="text-sm text-slate-500">{fmtRange(r.startAt, r.endAt, tz)}{r.visitor.user?.jobTitle ? ` · ${r.visitor.user.jobTitle}` : ""}{r.visitor.phone ? ` · ${r.visitor.phone}` : ""}{r.visitorCategory ? ` · ${r.visitorCategory}` : ""}{r.referenceNo ? ` · ${r.referenceNo}` : ""}</div>
         {r.purpose && <div className="mt-1 text-sm text-slate-700">“{r.purpose}”</div>}
       </div>
       <div className="flex flex-col items-end gap-2">

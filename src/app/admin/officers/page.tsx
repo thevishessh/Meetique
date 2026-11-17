@@ -34,6 +34,7 @@ export default async function OfficersPage() {
                     <div className="text-xs text-slate-500">{o.department?.name ?? "No department"} · {o.user.email}</div>
                   </div>
                   <div className="text-xs text-slate-500">{o.workingHours.length ? o.workingHours.map((h) => WD[h.weekday]).join(", ") : "No hours set"} · {o.slotDurationMin}m slots</div>
+                  {o.canSummon && <Badge tone="rose">Can call meetings</Badge>}
                   {!o.user.isActive ? <Badge tone="rose">Deactivated</Badge> : o.isBookable ? <Badge tone="green">Bookable</Badge> : <Badge tone="amber">Paused</Badge>}
                   <span className="text-sm text-brand-600">Manage →</span>
                 </Link>

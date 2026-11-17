@@ -12,8 +12,13 @@ export type ApptRow = {
   status: AppointmentStatus;
   source: "ONLINE" | "WALK_IN";
   purpose: string | null;
+  visitorCategory?: string | null;
+  referenceNo?: string | null;
   officerId: string;
-  visitor: { name: string; phone: string; email: string | null };
+  kind?: "SCHEDULED" | "IMMEDIATE";
+  attendeeResponse?: "ACKNOWLEDGED" | "ON_MY_WAY" | null;
+  requestedBy?: { name: string } | null;
+  visitor: { name: string; phone: string | null; email: string | null; user?: { employeeId: string | null; jobTitle: string | null } | null };
   tokens: { tokenNumber: string; qrSecret: string }[];
   officer: { user: { name: string } };
 };
@@ -46,7 +51,9 @@ export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium text-slate-900">{r.visitor.name}</div>
-                  <div className="text-xs text-slate-500">{r.visitor.phone}{r.visitor.email ? ` · ${r.visitor.email}` : ""}</div>
+                  <div className="text-xs text-slate-500">{[r.visitor.user?.jobTitle, r.visitor.user?.employeeId && `ID ${r.visitor.user.employeeId}`, r.visitor.phone, r.visitor.email].filter(Boolean).join(" · ")}</div>
+                  {r.kind === "IMMEDIATE" && <div className="mt-1 flex flex-wrap gap-1"><Badge tone="rose">Immediate · called by {r.requestedBy?.name ?? "officer"}</Badge><ResponseBadge r={r} /></div>}
+                  {(r.visitorCategory || r.referenceNo) && <div className="mt-0.5 text-xs text-slate-600">{[r.visitorCategory, r.referenceNo].filter(Boolean).join(" · ")}</div>}
                   {r.purpose && <div className="mt-1 max-w-xs text-xs text-slate-600">“{r.purpose}”</div>}
                 </td>
                 {showOfficer && <td className="whitespace-nowrap px-4 py-3 text-slate-700">{r.officer.user.name}</td>}
@@ -61,8 +68,16 @@ export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true
   );
 }
 
+export function ResponseBadge({ r }: { r: Pick<ApptRow, "kind" | "attendeeResponse" | "status"> }) {
+  if (r.kind !== "IMMEDIATE" || !["BOOKED", "CHECKED_IN", "WAITING"].includes(r.status)) return null;
+  if (r.attendeeResponse === "ON_MY_WAY") return <Badge tone="green">On the way</Badge>;
+  if (r.attendeeResponse === "ACKNOWLEDGED") return <Badge tone="brand">Acknowledged</Badge>;
+  return <Badge tone="amber">Not yet acknowledged</Badge>;
+}
+
 export const apptInclude = {
-  visitor: { select: { name: true, phone: true, email: true } },
+  requestedBy: { select: { name: true } },
+  visitor: { select: { name: true, phone: true, email: true, user: { select: { employeeId: true, jobTitle: true } } } },
   tokens: { where: { isActive: true }, take: 1, select: { tokenNumber: true, qrSecret: true } },
   officer: { select: { user: { select: { name: true } } } },
 } as const;

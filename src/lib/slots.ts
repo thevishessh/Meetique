@@ -65,6 +65,12 @@ export async function getDaySlots(officerId: string, date: string, opts: SlotOpt
     if (day > lastDay) return { ...base, status: "OUT_OF_RANGE", message: `Bookings open only ${officer.advanceBookingDays} days in advance.` };
   }
 
+  // 0. Organization-wide holiday (e.g. Diwali) closes online booking for every officer
+  if (!opts.staffOverride) {
+    const holiday = await db.orgHoliday.findUnique({ where: { organizationId_date: { organizationId: officer.organizationId, date } } });
+    if (holiday) return { ...base, status: "BLOCKED", message: `Holiday: ${holiday.name}` };
+  }
+
   // 1. Working windows for the day
   const [hours, blocks] = await Promise.all([
     db.workingHour.findUnique({ where: { officerId_weekday: { officerId, weekday: day.weekday } } }),

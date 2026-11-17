@@ -10,7 +10,8 @@ export async function buildReport(orgId: string, tz: string, from: string, to: s
   const rows = await prisma.appointment.findMany({
     where: { organizationId: orgId, startAt: { gte: start, lt: end } },
     include: {
-      visitor: true,
+      visitor: { include: { user: { select: { employeeId: true, jobTitle: true } } } },
+      requestedBy: { select: { name: true } },
       tokens: { orderBy: { issuedAt: "desc" }, take: 1 },
       officer: { include: { user: { select: { name: true } }, department: { select: { name: true } } } },
     },
@@ -52,10 +53,14 @@ export async function buildReport(orgId: string, tz: string, from: string, to: s
       officer: r.officer.user.name,
       department: r.officer.department?.name ?? "",
       visitor: r.visitor.name,
-      phone: r.visitor.phone,
+      employeeId: r.visitor.user?.employeeId ?? "",
+      jobTitle: r.visitor.user?.jobTitle ?? "",
+      phone: r.visitor.phone ?? "",
       email: r.visitor.email ?? "",
+      visitorType: r.visitorCategory ?? "",
+      reference: r.referenceNo ?? "",
       purpose: r.purpose ?? "",
-      source: r.source === "WALK_IN" ? "Walk-in" : "Online",
+      type: r.kind === "IMMEDIATE" ? `Immediate (called by ${r.requestedBy?.name ?? "officer"})` : r.source === "WALK_IN" ? "Walk-in" : "Booked",
       status: STATUS_LABEL[r.status],
     })),
   };

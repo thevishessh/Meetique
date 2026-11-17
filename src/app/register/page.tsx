@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Card, Logo } from "@/components/ui";
-import { TIMEZONES } from "@/lib/config";
+import { ALLOW_ORG_SIGNUP, TIMEZONES } from "@/lib/config";
 import RegisterForm from "./register-form";
 
 export const metadata = { title: "Register organization" };
 
 export default function RegisterPage() {
+  if (!ALLOW_ORG_SIGNUP) notFound();
   return (
     <div className="flex min-h-screen flex-col items-center px-4 py-12">
       <Link href="/"><Logo className="text-xl" /></Link>

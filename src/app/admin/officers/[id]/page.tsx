@@ -38,6 +38,7 @@ export default async function OfficerDetail({ params }: { params: Promise<{ id: 
           location: officer.location,
           bio: officer.bio,
           isActive: officer.user.isActive,
+          canSummon: officer.canSummon,
         }}
         departments={departments.map((d) => ({ id: d.id, name: d.name }))}
       />

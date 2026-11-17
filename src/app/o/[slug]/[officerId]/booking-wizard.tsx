@@ -5,8 +5,9 @@ import { DateTime } from "luxon";
 import SlotPicker from "@/components/slot-picker";
 import { api, formData } from "@/components/client-api";
 import { Alert, Button, Card, Field, Input, Textarea } from "@/components/ui";
+import { VisitorExtraFields, type VisitorFieldConfig } from "@/components/visitor-extra-fields";
 
-export default function BookingWizard({ officerId, startDate, days, duration }: { officerId: string; startDate: string; days: { date: string; open: number }[]; duration: number }) {
+export default function BookingWizard({ officerId, startDate, days, duration, fields, identity }: { officerId: string; startDate: string; days: { date: string; open: number }[]; duration: number; fields: VisitorFieldConfig; identity: { name: string; email: string } | null }) {
   const router = useRouter();
   const [slot, setSlot] = useState<{ start: string; label: string; date: string } | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
@@ -55,16 +56,24 @@ export default function BookingWizard({ officerId, startDate, days, duration }: 
             className="space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold">2. Your details</h2>
+              <h2 className="font-semibold">{identity ? "2. Confirm meeting" : "2. Your details"}</h2>
               <button type="button" className="text-sm text-brand-600 hover:underline" onClick={() => setStep(1)}>← Change time</button>
             </div>
             {err && <Alert>{err}</Alert>}
+            {identity ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">Booking as <b>{identity.name}</b> <span className="text-slate-500">({identity.email})</span></div>
+                <Field label="Agenda / purpose of meeting"><Textarea name="purpose" rows={3} maxLength={300} required placeholder="e.g. Discuss lab equipment budget" /></Field>
+              </div>
+            ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name" className="sm:col-span-2"><Input name="name" required minLength={2} autoComplete="name" /></Field>
               <Field label="Mobile number" hint="Used to find your booking later"><Input name="phone" type="tel" required inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" /></Field>
               <Field label="Email (optional)" hint="We'll email your token"><Input name="email" type="email" autoComplete="email" /></Field>
+              <VisitorExtraFields config={fields} />
               <Field label="Purpose of visit" className="sm:col-span-2"><Textarea name="purpose" rows={3} maxLength={300} placeholder="e.g. Transcript verification" /></Field>
             </div>
+            )}
             <Button size="lg" className="w-full" disabled={busy}>{busy ? "Confirming…" : "Confirm booking"}</Button>
           </form>
         )}

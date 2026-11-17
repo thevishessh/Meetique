@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { api, formData } from "@/components/client-api";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
 
-export function SettingsForm({ org, timezones }: { org: { name: string; timezone: string; email: string | null; phone: string | null; address: string | null }; timezones: string[] }) {
+export function SettingsForm({ org, timezones }: { org: { name: string; timezone: string; email: string | null; phone: string | null; address: string | null; visitorCategories: string[]; referenceLabel: string | null }; timezones: string[] }) {
   const router = useRouter();
   const [msg, setMsg] = useState<{ tone: "green" | "rose"; text: string } | null>(null);
   return (
@@ -30,6 +30,13 @@ export function SettingsForm({ org, timezones }: { org: { name: string; timezone
       <Field label="Contact email"><Input name="email" type="email" defaultValue={org.email ?? ""} /></Field>
       <Field label="Contact phone"><Input name="phone" defaultValue={org.phone ?? ""} /></Field>
       <Field label="Address" className="sm:col-span-2"><Textarea name="address" rows={2} defaultValue={org.address ?? ""} /></Field>
+      <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-4 text-sm font-semibold text-slate-700">Booking form fields</div>
+      <Field label="Visitor types" hint="Comma-separated. Shown as “I am a…” on the booking form. Leave empty to hide.">
+        <Input name="visitorCategories" defaultValue={org.visitorCategories.join(", ")} placeholder="Student, Parent / Guardian, Applicant" />
+      </Field>
+      <Field label="Reference field label" hint="Optional ID visitors can enter. Leave empty to hide.">
+        <Input name="referenceLabel" defaultValue={org.referenceLabel ?? ""} placeholder="Student UID / Application No." />
+      </Field>
       <div><Button>Save settings</Button></div>
     </form>
   );

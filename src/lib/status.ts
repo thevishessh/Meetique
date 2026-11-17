@@ -39,6 +39,7 @@ export const ROLE_CAN_SET: Record<Role, AppointmentStatus[]> = {
   ADMIN: ["CHECKED_IN", "WAITING", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"],
   OFFICER: ["CHECKED_IN", "WAITING", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"],
   RECEPTIONIST: ["CHECKED_IN", "WAITING", "CANCELLED", "NO_SHOW"],
+  STAFF: ["CANCELLED"], // own bookings only (enforced in changeStatus)
 };
 
 export function nextActions(status: AppointmentStatus, role: Role): AppointmentStatus[] {
