@@ -23,7 +23,7 @@ export function DepartmentsManager({ deps }: { deps: D[] }) {
   return (
     <div>
       {err && <div className="px-5 pt-4"><Alert>{err}</Alert></div>}
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-rule">
         {deps.map((d) =>
           editing === d.id ? (
             <li key={d.id} className="px-5 py-3">
@@ -38,7 +38,7 @@ export function DepartmentsManager({ deps }: { deps: D[] }) {
             <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
               <div>
                 <div className="font-medium">{d.name}</div>
-                <div className="text-xs text-slate-500">{d.officers} officer{d.officers === 1 ? "" : "s"}{d.description ? ` · ${d.description}` : ""}</div>
+                <div className="text-xs text-muted">{d.officers} officer{d.officers === 1 ? "" : "s"}{d.description ? `. ${d.description}` : ""}</div>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={() => setEditing(d.id)}>Edit</Button>
@@ -49,7 +49,7 @@ export function DepartmentsManager({ deps }: { deps: D[] }) {
         )}
       </ul>
       <form
-        className="flex flex-wrap gap-2 border-t border-slate-100 p-5"
+        className="flex flex-wrap gap-2 border-t border-rule p-5"
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;

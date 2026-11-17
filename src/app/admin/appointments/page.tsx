@@ -34,7 +34,7 @@ export default async function AdminAppointments({ searchParams }: { searchParams
         <DateNav date={date} today={today} />
         <FilterSelect name="officer" value={sp.officer ?? ""} all="All officers" options={officers.map((o) => ({ value: o.id, label: o.user.name }))} />
         <FilterSelect name="status" value={status ?? ""} all="All statuses" options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))} />
-        <span className="text-sm text-slate-500">{rows.length} result{rows.length === 1 ? "" : "s"}</span>
+        <span className="text-sm text-muted">{rows.length} result{rows.length === 1 ? "" : "s"}</span>
       </div>
       <Card><AppointmentTable rows={rows} tz={tz} role="ADMIN" empty="No appointments for this day / filter" /></Card>
     </div>

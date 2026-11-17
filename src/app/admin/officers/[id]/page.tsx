@@ -27,10 +27,10 @@ export default async function OfficerDetail({ params }: { params: Promise<{ id: 
   ]);
   return (
     <div className="space-y-6">
-      <Link href="/admin/officers" className="text-sm text-slate-500 hover:text-slate-800">← Officers</Link>
+      <Link href="/admin/officers" className="link text-sm">All officers</Link>
       <PageHeader
         title={officer.user.name}
-        description={<>{officer.designation} · <Link className="text-brand-600 hover:underline" href={`/o/${user.org.slug}/${officer.id}`} target="_blank">public booking page ↗</Link></>}
+        description={<>{officer.designation}. <Link className="link" href={`/o/${user.org.slug}/${officer.id}`} target="_blank">Open the booking page</Link></>}
       />
       <OfficerProfileForm
         officer={{

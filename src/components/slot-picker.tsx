@@ -65,16 +65,17 @@ export default function SlotPicker({
     return () => clearInterval(t);
   }, []);
 
-  // Hide slots that have already passed — they only add noise
+  // Hide slots that have already passed: they only add noise
   const shown = day?.slots.filter((s) => s.reason !== "PAST") ?? [];
   const available = shown.filter((s) => s.available).length;
 
   const lengths = day?.durations ?? [];
+  const fmtLen = (m: number) => (m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hour${m > 60 ? "s" : ""}` : `${Math.floor(m / 60)} h ${m % 60} min`);
   return (
     <div>
       {onDuration && lengths.length > 1 && (
-        <div className="mb-4">
-          <div className="mb-1.5 text-sm font-medium text-slate-700">Meeting length</div>
+        <fieldset className="mb-6">
+          <legend className="field-label">Meeting length</legend>
           <div className="flex flex-wrap gap-2">
             {lengths.map((m) => {
               const active = (duration ?? day?.durationMin) === m;
@@ -82,20 +83,23 @@ export default function SlotPicker({
                 <button
                   key={m}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => {
                     onDuration(m);
                     onChange(null);
                   }}
-                  className={cx("rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition", active ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-slate-700 ring-slate-300 hover:ring-brand-300")}
+                  className={cx("btn btn--sm", active && "btn--primary")}
                 >
-                  {m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hour${m > 60 ? "s" : ""}` : `${Math.floor(m / 60)} h ${m % 60} min`}
+                  {fmtLen(m)}
                 </button>
               );
             })}
           </div>
-        </div>
+        </fieldset>
       )}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+
+      <div className="field-label">Day</div>
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2" role="group" aria-label="Choose a day">
         {dates.map((d) => {
           const dt = DateTime.fromISO(d.date);
           const active = d.date === date;
@@ -104,38 +108,43 @@ export default function SlotPicker({
             <button
               key={d.date}
               type="button"
+              aria-pressed={active}
               onClick={() => {
                 setDate(d.date);
                 onChange(null);
               }}
               className={cx(
-                "flex min-w-[4.25rem] shrink-0 flex-col items-center rounded-xl px-3 py-2 text-center ring-1 ring-inset transition",
-                active ? "bg-brand-600 text-white ring-brand-600" : closed ? "bg-slate-50 text-slate-400 ring-slate-200" : "bg-white text-slate-700 ring-slate-200 hover:ring-brand-300",
+                "flex min-w-[4.5rem] shrink-0 flex-col items-center rounded-[10px] border px-3 py-2 text-center transition-colors duration-[var(--dur-micro)]",
+                active ? "border-ink bg-ink text-paper" : closed ? "border-rule-2 bg-paper-2 text-muted" : "border-rule bg-paper text-ink hover:border-ink",
               )}
             >
-              <span className="text-[11px] font-medium uppercase">{dt.toFormat("ccc")}</span>
-              <span className="text-lg font-semibold leading-tight">{dt.toFormat("d")}</span>
-              <span className="text-[11px]">{dt.toFormat("LLL")}</span>
-              {d.open >= 0 && <span className={cx("mt-0.5 text-[10px]", active ? "text-brand-100" : closed ? "" : "text-emerald-600")}>{closed ? "—" : `${d.open} open`}</span>}
+              <span className="text-xs">{dt.toFormat("ccc")}</span>
+              <span className="num font-display text-xl font-bold leading-tight">{dt.toFormat("d")}</span>
+              <span className="text-xs">{dt.toFormat("LLL")}</span>
+              {d.open >= 0 && <span className={cx("mt-1 text-xs", active ? "text-paper" : closed ? "text-muted" : "text-accent")}>{closed ? "Closed" : `${d.open} free`}</span>}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-4 min-h-32">
+      <div className="mt-6 min-h-32">
         {loading && !day ? (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-slate-100" />)}</div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-busy="true" aria-label="Loading free times">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-14 rounded-[10px] bg-paper-3" />)}
+          </div>
         ) : err ? (
-          <p className="text-sm text-rose-600">{err}</p>
+          <p role="alert" className="note note--error">{err}</p>
         ) : day && shown.length === 0 ? (
-          <div className="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{day.message ?? (day.slots.length ? "All slots for today have passed." : "No slots on this day.")}</div>
+          <div className="well px-5 py-6 text-sm text-ink-2">{day.message ?? (day.slots.length ? "All of today's times have passed. Pick another day." : "No free times on this day. Pick another day.")}</div>
         ) : day ? (
           <>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <span className="font-medium text-slate-700">{DateTime.fromISO(date).toFormat("cccc, d LLLL")}</span>
-              <span className="text-slate-500">{available} of {shown.length} slots available{day.breaks.length ? ` · Break ${day.breaks.map((b) => b.label).join(", ")}` : ""}</span>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-ink pb-2 text-sm">
+              <span className="font-semibold text-ink">{DateTime.fromISO(date).toFormat("cccc, d LLLL")}</span>
+              <span className="text-muted">
+                {available} of {shown.length} free{day.breaks.length ? `, break ${day.breaks.map((b) => b.label).join(", ")}` : ""}
+              </span>
             </div>
-            {day.message && <p className="mb-3 text-sm text-amber-700">{day.message}</p>}
+            {day.message && <p className="mb-3 text-sm text-ink">{day.message}</p>}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {shown.map((s) => {
                 const selected = value === s.start;
@@ -143,26 +152,23 @@ export default function SlotPicker({
                   <button
                     key={s.start}
                     type="button"
+                    aria-pressed={selected}
                     disabled={!s.available}
                     onClick={() => onChange(s.start, s.label, date)}
                     className={cx(
-                      "flex h-14 flex-col items-center justify-center rounded-lg text-sm ring-1 ring-inset transition",
-                      selected
-                        ? "bg-brand-600 font-semibold text-white ring-brand-600"
-                        : s.available
-                          ? "bg-white font-medium text-slate-800 ring-slate-300 hover:bg-brand-50 hover:ring-brand-400"
-                          : "cursor-not-allowed bg-slate-50 text-slate-400 ring-slate-200",
+                      "flex h-14 flex-col items-center justify-center rounded-[10px] border text-sm transition-colors duration-[var(--dur-micro)] disabled:cursor-not-allowed",
+                      selected ? "border-ink bg-ink font-semibold text-paper" : s.available ? "border-rule bg-paper font-semibold text-ink hover:border-accent hover:bg-accent-soft" : "border-rule-2 bg-paper-2 text-muted",
                     )}
                   >
-                    <span>{s.label}</span>
-                    <span className={cx("text-[10px] font-normal", selected ? "text-brand-100" : "")}>
+                    <span className="num">{s.label}</span>
+                    <span className={cx("text-xs font-normal", selected ? "text-paper" : s.available ? "text-muted" : "")}>
                       {!s.available ? REASON[s.reason ?? "FULL"] : s.capacity > 1 ? `${s.capacity - s.booked} of ${s.capacity} left` : `till ${DateTime.fromISO(s.end).setZone(day.timezone).toFormat("h:mm a")}`}
                     </span>
                   </button>
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-slate-400">Times shown in {day.timezone}</p>
+            <p className="mt-3 text-xs text-muted">Times in {day.timezone}</p>
           </>
         ) : null}
       </div>

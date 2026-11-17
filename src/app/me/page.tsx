@@ -29,17 +29,17 @@ export default async function MyMeetings() {
     <li className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-slate-900">{a.officer.user.name}</span>
-          <span className="text-sm text-slate-500">{a.officer.designation}{a.officer.department ? ` · ${a.officer.department.name}` : ""}</span>
-          {a.kind === "IMMEDIATE" && <Badge tone="rose">Immediate · called by {a.requestedBy?.name ?? "officer"}</Badge>}
+          <span className="font-semibold text-ink">{a.officer.user.name}</span>
+          <span className="text-sm text-muted">{a.officer.designation}{a.officer.department ? `, ${a.officer.department.name}` : ""}</span>
+          {a.kind === "IMMEDIATE" && <Badge tone="rose">Immediate, called by {a.requestedBy?.name ?? "the officer"}</Badge>}
         </div>
-        <div className="mt-0.5 text-sm text-slate-700">
+        <div className="mt-0.5 text-sm text-ink-2">
           {localDateOf(a.startAt, tz) === todayIn(tz) ? "Today" : fmtDate(a.startAt, tz)}, {fmtRange(a.startAt, a.endAt, tz)}
-          {a.officer.location ? ` · ${a.officer.location}` : ""}
+          {a.officer.location ? `, ${a.officer.location}` : ""}
         </div>
-        {a.purpose && <div className="mt-1 text-sm text-slate-600">“{a.purpose}”</div>}
-        {a.notes && <div className="mt-1 whitespace-pre-line rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700"><b>Meeting notes:</b> {a.notes}</div>}
-        {a.tokens[0] && <Link href={`/a/${a.manageCode}`} className="mt-1 inline-block font-mono text-xs text-brand-700 hover:underline">{a.tokens[0].tokenNumber} · view QR slip</Link>}
+        {a.purpose && <div className="mt-1 text-sm text-ink-2">“{a.purpose}”</div>}
+        {a.notes && <div className="mt-1 whitespace-pre-line rounded-md bg-paper-2 px-3 py-2 text-xs text-ink-2"><b>Meeting notes:</b> {a.notes}</div>}
+        {a.tokens[0] && <Link href={`/a/${a.manageCode}`} className="link mt-2 inline-block text-sm">QR slip <span className="token-no">{a.tokens[0].tokenNumber}</span></Link>}
       </div>
       <div className="flex flex-col items-end gap-2">
         <StatusBadge status={a.status} />
@@ -54,12 +54,12 @@ export default async function MyMeetings() {
       <PageHeader title="My meetings" description="Meetings you booked, and meetings officers have called you to." action={<ButtonLink href={`/o/${user.org.slug}`}>Book a meeting</ButtonLink>} />
       <Card>
         <CardHeader title="Upcoming" />
-        {upcoming.length ? <ul className="divide-y divide-slate-100">{upcoming.map((a) => <Row key={a.id} a={a} showActions />)}</ul> : <div className="p-5"><Empty title="No upcoming meetings">Use “Book a meeting” to request time with an officer.</Empty></div>}
+        {upcoming.length ? <ul className="divide-y divide-rule">{upcoming.map((a) => <Row key={a.id} a={a} showActions />)}</ul> : <Empty title="No upcoming meetings">Use “Book a meeting” to request time with an officer.</Empty>}
       </Card>
       {past.length > 0 && (
         <Card>
           <CardHeader title="Past & cancelled" />
-          <ul className="divide-y divide-slate-100">{past.map((a) => <Row key={a.id} a={a} />)}</ul>
+          <ul className="divide-y divide-rule">{past.map((a) => <Row key={a.id} a={a} />)}</ul>
         </Card>
       )}
     </div>

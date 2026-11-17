@@ -30,7 +30,7 @@ export default function ManageActions({ id, code, canChange, officerId, startDat
 
       {mode === "cancel" && (
         <Card className="p-5">
-          <p className="text-sm text-slate-700">Cancel this appointment? The slot will be released for others and your token will stop working.</p>
+          <p className="text-sm text-ink-2">Cancel this appointment? The slot will be released for others and your token will stop working.</p>
           <div className="mt-4 flex gap-2">
             <Button
               variant="danger"

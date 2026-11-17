@@ -35,12 +35,12 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
     <div>
       {msg && <div className="px-5 pt-4"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
       <div className="px-5 pt-4"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, L Code, department…" className="max-w-md" /></div>
-      <ul className="mt-2 max-h-[32rem] divide-y divide-slate-100 overflow-y-auto">
+      <ul className="mt-2 max-h-[32rem] divide-y divide-rule overflow-y-auto">
         {shown.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
             <div className="min-w-0">
-              <div className="font-medium">{s.name} {s.id === me && <span className="text-xs text-slate-400">(you)</span>}</div>
-              <div className="text-xs text-slate-500">{[s.email, s.jobTitle, s.department?.name, s.employeeId ? `L Code ${s.employeeId}` : "⚠ no L Code"].filter(Boolean).join(" · ")}</div>
+              <div className="font-medium">{s.name} {s.id === me && <span className="text-xs text-muted">(you)</span>}</div>
+              <div className="text-xs text-muted">{[s.email, s.jobTitle, s.department?.name, s.employeeId ? `L Code ${s.employeeId}` : "no L Code yet"].filter(Boolean).join(", ")}</div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={ROLE[s.role].tone}>{ROLE[s.role].label}</Badge>
@@ -55,10 +55,10 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
             </div>
           </li>
         ))}
-        {!shown.length && <li className="px-5 py-6 text-center text-sm text-slate-500">No match</li>}
+        {!shown.length && <li className="px-5 py-6 text-center text-sm text-muted">No match</li>}
       </ul>
       <form
-        className="grid gap-3 border-t border-slate-100 p-5 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-3 border-t border-rule p-5 sm:grid-cols-2 lg:grid-cols-4"
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
@@ -66,7 +66,7 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
           run(async () => { await api("/api/staff", { body: f }); form.reset(); setRole("STAFF"); }, "Account created.");
         }}
       >
-        <div className="text-sm font-semibold text-slate-700 sm:col-span-2 lg:col-span-4">Add one account</div>
+        <div className="text-sm font-semibold text-ink-2 sm:col-span-2 lg:col-span-4">Add one account</div>
         <Field label="Role">
           <Select name="role" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="STAFF">Staff member (books meetings)</option>
@@ -83,7 +83,7 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
             <Field label="Designation"><Input name="jobTitle" placeholder="Assistant Professor" /></Field>
             <Field label="Department">
               <Select name="departmentId" defaultValue="">
-                <option value="">—</option>
+                <option value="">None</option>
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </Select>
             </Field>
@@ -126,7 +126,7 @@ export function StaffImport() {
           {!!res.skipped?.length && <ul className="mt-1 list-disc pl-5 text-xs">{res.skipped.slice(0, 20).map((s) => <li key={s.line}>Line {s.line}: {s.reason}</li>)}</ul>}
         </Alert>
       )}
-      <Textarea name="csv" rows={6} required className="font-mono text-xs" placeholder={"name,email,lCode,department,designation,phone\nDr. Asha Rao,asha.rao@campus.edu,L10234,Computer Science,Assistant Professor,9876500001"} />
+      <Textarea name="csv" rows={6} required className="token-no text-xs" placeholder={"name,email,lCode,department,designation,phone\nDr. Asha Rao,asha.rao@campus.edu,L10234,Computer Science,Assistant Professor,9876500001"} />
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Initial password for everyone"><Input name="password" required minLength={8} className="w-56" /></Field>
         <Button disabled={busy}>{busy ? "Importing…" : "Import staff"}</Button>

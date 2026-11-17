@@ -16,7 +16,7 @@ export function WalkIn({ officers, today, fields, defaultOfficerId }: { officers
 
   return (
     <Card>
-      <CardHeader title="Walk-in registration" description="Register a visitor without a booking — they are checked in immediately." />
+      <CardHeader title="Walk-in registration" description="Register someone without a booking. They are checked in at once." />
       <form
         className="space-y-4 p-5"
         onSubmit={async (e) => {
@@ -27,7 +27,7 @@ export function WalkIn({ officers, today, fields, defaultOfficerId }: { officers
           setMsg(null);
           try {
             const r = await api<{ tokenNumber: string; manageCode: string }>("/api/appointments", { body: { ...formData(form), officerId, startAt: slot, walkIn: true } });
-            setMsg({ tone: "green", text: <>Token <b className="font-mono">{r.tokenNumber}</b> issued · <a className="underline" href={`/a/${r.manageCode}`} target="_blank">print slip</a></> });
+            setMsg({ tone: "green", text: <>Token <b className="token-no">{r.tokenNumber}</b> issued. <a className="link" href={`/a/${r.manageCode}`} target="_blank">print slip</a></> });
             form.reset();
             setSlot(null);
             setK((x) => x + 1);
@@ -52,7 +52,7 @@ export function WalkIn({ officers, today, fields, defaultOfficerId }: { officers
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Visitor name"><Input name="name" required /></Field>
               <Field label="Mobile"><Input name="phone" type="tel" required /></Field>
-              <Field label="L Code" hint="Compulsory — links the visit to the staff member's account"><Input name="lCode" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="e.g. L12345" className="uppercase" /></Field>
+              <Field label="L Code" hint="Compulsory. Links the visit to the staff member’s account."><Input name="lCode" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="e.g. L12345" className="uppercase" /></Field>
               <VisitorExtraFields config={fields} />
               <Field label="Purpose" className="sm:col-span-2"><Input name="purpose" /></Field>
             </div>

@@ -30,36 +30,43 @@ export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-            <th className="px-4 py-3">Time</th>
-            <th className="px-4 py-3">Token</th>
-            <th className="px-4 py-3">Visitor</th>
-            {showOfficer && <th className="px-4 py-3">Officer</th>}
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Actions</th>
+          <tr className="border-b border-ink text-left text-sm text-muted">
+            <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal">Time</th>
+            <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal">Token</th>
+            <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal">Person</th>
+            {showOfficer && <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal">Officer</th>}
+            <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal">State</th>
+            <th scope="col" className="whitespace-nowrap px-5 py-2 font-normal"><span className="visually-hidden">Actions</span></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-rule">
           {rows.map((r) => {
             const actions = role === "OFFICER" && r.officerId !== officerId ? [] : nextActions(r.status, role);
             const t = r.tokens[0];
+            const meta = [r.visitor.user?.jobTitle, r.visitor.user?.employeeId && `L Code ${r.visitor.user.employeeId}`, r.visitor.phone, r.visitor.email].filter(Boolean).join(", ");
             return (
-              <tr key={r.id} className="align-top hover:bg-slate-50/60">
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">{fmtRange(r.startAt, r.endAt, tz)}</td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  {t ? <Link href={`/t/${t.qrSecret}`} className="font-mono text-xs font-semibold text-brand-700 hover:underline">{t.tokenNumber}</Link> : "—"}
-                  {r.source === "WALK_IN" && <div className="mt-1"><Badge tone="amber">Walk-in</Badge></div>}
+              <tr key={r.id} className="align-top">
+                <td className="num whitespace-nowrap px-5 py-4 font-semibold text-ink">{fmtRange(r.startAt, r.endAt, tz)}</td>
+                <td className="whitespace-nowrap px-5 py-4">
+                  {t ? <Link href={`/t/${t.qrSecret}`} className="link token-no text-sm">{t.tokenNumber}</Link> : <span className="text-muted">None</span>}
+                  {r.source === "WALK_IN" && <div className="mt-2"><Badge tone="amber">Walk-in</Badge></div>}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="font-medium text-slate-900">{r.visitor.name}</div>
-                  <div className="text-xs text-slate-500">{[r.visitor.user?.jobTitle, r.visitor.user?.employeeId && `L Code ${r.visitor.user.employeeId}`, r.visitor.phone, r.visitor.email].filter(Boolean).join(" · ")}</div>
-                  {r.kind === "IMMEDIATE" && <div className="mt-1 flex flex-wrap gap-1"><Badge tone="rose">Immediate · called by {r.requestedBy?.name ?? "officer"}</Badge><ResponseBadge r={r} /></div>}
-                  {(r.visitorCategory || r.referenceNo) && <div className="mt-0.5 text-xs text-slate-600">{[r.visitorCategory, r.referenceNo].filter(Boolean).join(" · ")}</div>}
-                  {r.purpose && <div className="mt-1 max-w-xs text-xs text-slate-600">“{r.purpose}”</div>}
+                <td className="min-w-56 px-5 py-4">
+                  <div className="font-semibold text-ink">{r.visitor.name}</div>
+                  {meta && <div className="mt-0.5 text-sm text-muted">{meta}</div>}
+                  {r.kind === "IMMEDIATE" && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <Badge tone="rose">Immediate</Badge>
+                      <ResponseBadge r={r} />
+                    </div>
+                  )}
+                  {r.kind === "IMMEDIATE" && <div className="mt-1 text-sm text-ink-2">Called by {r.requestedBy?.name ?? "the officer"}</div>}
+                  {(r.visitorCategory || r.referenceNo) && <div className="mt-1 text-sm text-ink-2">{[r.visitorCategory, r.referenceNo].filter(Boolean).join(", ")}</div>}
+                  {r.purpose && <div className="mt-1 max-w-sm text-sm text-ink-2">“{r.purpose}”</div>}
                 </td>
-                {showOfficer && <td className="whitespace-nowrap px-4 py-3 text-slate-700">{r.officer.user.name}</td>}
-                <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                <td className="px-4 py-3">{actions.length ? <StatusActions id={r.id} actions={actions} /> : <span className="text-xs text-slate-400">—</span>}</td>
+                {showOfficer && <td className="whitespace-nowrap px-5 py-4 text-ink-2">{r.officer.user.name}</td>}
+                <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
+                <td className="px-5 py-4">{actions.length ? <StatusActions id={r.id} actions={actions} /> : null}</td>
               </tr>
             );
           })}

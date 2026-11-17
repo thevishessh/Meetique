@@ -63,16 +63,16 @@ export function OfficerProfileForm({ officer, departments }: { officer: O; depar
         <Field label="Designation"><Input name="designation" defaultValue={officer.designation} required /></Field>
         <Field label="Department">
           <Select name="departmentId" defaultValue={officer.departmentId ?? ""}>
-            <option value="">— None —</option>
+            <option value="">None</option>
             {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </Select>
         </Field>
         <Field label="Phone"><Input name="phone" defaultValue={officer.phone ?? ""} /></Field>
         <Field label="Room / location"><Input name="location" defaultValue={officer.location ?? ""} /></Field>
         <Field label="Short bio" className="sm:col-span-2 lg:col-span-3"><Textarea name="bio" rows={2} defaultValue={officer.bio ?? ""} /></Field>
-        <label className="flex items-start gap-3 rounded-lg bg-rose-50 px-4 py-3 text-sm ring-1 ring-inset ring-rose-200 sm:col-span-2 lg:col-span-3">
-          <input type="checkbox" name="canSummon" defaultChecked={officer.canSummon} className="mt-0.5 h-4 w-4 accent-rose-600" />
-          <span><b>Designated officer: can call immediate meetings</b><br /><span className="text-slate-600">Lets this officer call anyone in the university for an urgent meeting, ignoring slots and working hours.</span></span>
+        <label className="flex items-start gap-3 rounded-lg bg-paper px-4 py-3 text-sm ring-1 ring-inset ring-error sm:col-span-2 lg:col-span-3">
+          <input type="checkbox" name="canSummon" defaultChecked={officer.canSummon} className="mt-0.5 h-4 w-4 accent-ink" />
+          <span><b>Designated officer: can call immediate meetings</b><br /><span className="text-ink-2">Lets this officer call anyone in the university for an urgent meeting, ignoring slots and working hours.</span></span>
         </label>
         <div><Button disabled={busy}>Save profile</Button></div>
       </form>

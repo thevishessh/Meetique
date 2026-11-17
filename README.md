@@ -1,4 +1,4 @@
-# CU Unnao Meetings
+# CU Meetings
 
 **Staff meeting booking, immediate meetings, and QR token check-in for Chandigarh University, Unnao Campus.**
 
@@ -94,7 +94,7 @@ Sign in → **Book a meeting** → department → officer → **meeting length**
 | `CLIENT_ORG_SLUG` | `cu-unnao` | The organization this deployment serves |
 | `ALLOW_ORG_SIGNUP` | `false` | Turns off `/register` for new organizations |
 | `SEED_PROFILE` | `cu-unnao` | Data created by `npm run db:seed` (`cu-unnao` or `demo`) |
-| `NEXT_PUBLIC_APP_NAME` | `CU Unnao Meetings` | Name in the logo and browser tab |
+| `NEXT_PUBLIC_APP_NAME` | `CU Meetings` | Name in the logo and browser tab |
 | `NEXT_PUBLIC_APP_TAGLINE` | `Staff meeting booking & immediate meetings.` | Tagline |
 | `CLIENT_INITIAL_PASSWORD` | `CUUnnao@2026` | First password for seeded accounts |
 | `RESEND_API_KEY`, `EMAIL_FROM` | *(empty)* | Email via Resend (needed for **forgot password** and email alerts) |

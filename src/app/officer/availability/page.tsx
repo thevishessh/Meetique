@@ -13,7 +13,7 @@ export default async function OfficerAvailability() {
     <div>
       <PageHeader
         title="My availability"
-        description={<>Working days, hours, breaks, slot length and holidays. <Link href={`/o/${user.org.slug}/${officer.id}`} target="_blank" className="text-brand-600 hover:underline">View my booking page ↗</Link></>}
+        description={<>Working days, hours, breaks, slot length and holidays. <Link href={`/o/${user.org.slug}/${officer.id}`} target="_blank" className="text-ink hover:underline">View my booking page ↗</Link></>}
       />
       <AvailabilityEditor officerId={officer.id} hours={hours} settings={settings} blocks={blocks} timezone={user.org.timezone} />
     </div>

@@ -5,3 +5,6 @@ out
 *.tsbuildinfo
 next-env.d.ts
 src/generated
+
+# Hallmark design-skill working files (screenshots, lint records)
+.hallmark/

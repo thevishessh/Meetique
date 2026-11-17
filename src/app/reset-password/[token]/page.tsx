@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, Logo } from "@/components/ui";
+import { AuthLayout } from "@/components/auth-layout";
 import { ResetForm } from "@/components/auth-forms";
 
 export const metadata = { title: "Set a new password", robots: { index: false } };
@@ -7,12 +7,9 @@ export const metadata = { title: "Set a new password", robots: { index: false } 
 export default async function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <Link href="/login"><Logo className="text-xl" /></Link>
-      <Card className="mt-8 w-full max-w-sm p-6">
-        <h1 className="text-lg font-semibold">Set a new password</h1>
-        <ResetForm token={token} />
-      </Card>
-    </div>
+    <AuthLayout title="Set a new password" lead="At least 8 characters, with a letter and a number." foot={<Link href="/login" className="link">Back to sign in</Link>}>
+      <h2 className="text-section text-ink">New password</h2>
+      <ResetForm token={token} />
+    </AuthLayout>
   );
 }

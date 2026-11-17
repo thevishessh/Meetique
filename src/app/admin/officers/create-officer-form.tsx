@@ -33,7 +33,7 @@ export function CreateOfficerForm({ departments }: { departments: { id: string; 
       <Field label="Designation"><Input name="designation" required placeholder="Registrar" /></Field>
       <Field label="Department">
         <Select name="departmentId" defaultValue="">
-          <option value="">— None —</option>
+          <option value="">None</option>
           {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </Select>
       </Field>

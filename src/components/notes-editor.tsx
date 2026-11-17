@@ -13,14 +13,14 @@ export function NotesEditor({ id, initial }: { id: string; initial: string | nul
   const [err, setErr] = useState<string | null>(null);
   if (!open)
     return (
-      <button type="button" onClick={() => setOpen(true)} className="text-xs font-medium text-brand-700 hover:underline">
+      <button type="button" onClick={() => setOpen(true)} className="text-xs font-medium text-ink hover:underline">
         {initial ? "Edit notes" : "+ Add notes"}
       </button>
     );
   return (
     <div className="mt-2 w-full space-y-2">
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={4000} placeholder="Discussion points, decisions, follow-ups…" />
-      {err && <p className="text-xs text-rose-600">{err}</p>}
+      {err && <p className="text-xs text-error">{err}</p>}
       <div className="flex gap-2">
         <Button
           size="sm"

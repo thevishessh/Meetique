@@ -10,19 +10,19 @@ export function HolidaysManager({ rows }: { rows: { id: string; name: string; la
   return (
     <div>
       {rows.length ? (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-rule">
           {rows.map((h) => (
             <li key={h.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-              <span><span className="font-medium">{h.label}</span> <span className="text-slate-500">— {h.name}</span></span>
-              <button className="text-xs font-medium text-slate-400 hover:text-rose-600" onClick={async () => { await api(`/api/holidays/${h.id}`, { method: "DELETE" }); router.refresh(); }}>Remove</button>
+              <span><span className="font-medium">{h.label}</span> <span className="text-muted">{h.name}</span></span>
+              <button className="text-xs font-medium text-muted hover:text-error" onClick={async () => { await api(`/api/holidays/${h.id}`, { method: "DELETE" }); router.refresh(); }}>Remove</button>
             </li>
           ))}
         </ul>
       ) : (
-        <div className="p-5"><Empty title="No upcoming holidays" /></div>
+        <Empty title="No upcoming holidays" />
       )}
       <form
-        className="grid gap-3 border-t border-slate-100 p-5 sm:grid-cols-4"
+        className="grid gap-3 border-t border-rule p-5 sm:grid-cols-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const form = e.currentTarget;

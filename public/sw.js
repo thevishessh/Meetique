@@ -11,7 +11,7 @@ self.addEventListener("push", (event) => {
   }
   const urgent = !!data.urgent;
   event.waitUntil(
-    self.registration.showNotification(data.title || "CU Unnao Meetings", {
+    self.registration.showNotification(data.title || "CU Meetings", {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/badge-96.png",

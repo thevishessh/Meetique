@@ -42,7 +42,7 @@ export default function BookingWizard({
         {step === 1 ? (
           <>
             <h2 className="font-semibold">1. Choose length, date & time</h2>
-            <p className="mb-4 text-sm text-slate-500">Need more time? Pick a longer meeting — only times where the whole meeting fits are shown.</p>
+            <p className="mb-4 text-sm text-muted">Need more time? Pick a longer meeting. Only the times where the whole meeting fits are shown.</p>
             <SlotPicker
               key={pickerKey}
               officerId={officerId}
@@ -69,7 +69,7 @@ export default function BookingWizard({
                 setErr(msg);
                 setBusy(false);
                 if (/booked|full|passed|notice|fit/i.test(msg)) {
-                  // Slot got taken — send the booker back to pick another
+                  // Slot got taken: send the booker back to pick another
                   setSlot(null);
                   setPickerKey((k) => k + 1);
                   setStep(1);
@@ -80,16 +80,16 @@ export default function BookingWizard({
           >
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">{identity ? "2. Confirm meeting" : "2. Your details"}</h2>
-              <button type="button" className="text-sm text-brand-600 hover:underline" onClick={() => setStep(1)}>← Change time</button>
+              <button type="button" className="text-sm text-ink hover:underline" onClick={() => setStep(1)}>Change the time</button>
             </div>
             {err && <Alert>{err}</Alert>}
             {identity ? (
               <div className="space-y-4">
-                <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">
-                  Booking as <b>{identity.name}</b> <span className="text-slate-500">({identity.email}{identity.lCode ? ` · L Code ${identity.lCode}` : ""})</span>
+                <div className="rounded-lg bg-paper-2 px-4 py-3 text-sm">
+                  Booking as <b>{identity.name}</b> <span className="text-muted">({identity.email}{identity.lCode ? `, L Code ${identity.lCode}` : ""})</span>
                 </div>
                 {!identity.lCode && (
-                  <Field label="Your L Code" hint="Compulsory — saved to your profile, asked only once">
+                  <Field label="Your L Code" hint="Compulsory. Saved to your profile, asked only once.">
                     <Input name="lCode" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="e.g. L12345" className="uppercase" />
                   </Field>
                 )}
@@ -113,16 +113,16 @@ export default function BookingWizard({
 
       <div className="lg:sticky lg:top-6 lg:self-start">
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-slate-700">Your selection</h3>
+          <h3 className="text-sm font-semibold text-ink-2">Your selection</h3>
           {slot ? (
             <div className="mt-3">
-              <div className="text-lg font-semibold">{slot.label} – {endLabel}</div>
-              <div className="text-sm text-slate-600">{DateTime.fromISO(slot.date).toFormat("cccc, d LLLL yyyy")}</div>
-              <div className="text-xs text-slate-500">{length} minutes</div>
+              <div className="text-lg font-semibold">{slot.label} to {endLabel}</div>
+              <div className="text-sm text-ink-2">{DateTime.fromISO(slot.date).toFormat("cccc, d LLLL yyyy")}</div>
+              <div className="text-xs text-muted">{length} minutes</div>
               {step === 1 && <Button className="mt-4 w-full" onClick={() => { setErr(null); setStep(2); }}>Continue</Button>}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-slate-500">Pick a slot to continue.</p>
+            <p className="mt-3 text-sm text-muted">Pick a slot to continue.</p>
           )}
         </Card>
       </div>

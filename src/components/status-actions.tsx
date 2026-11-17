@@ -15,15 +15,16 @@ const LABEL: Partial<Record<AppointmentStatus, string>> = {
   CANCELLED: "Cancel",
   NO_SHOW: "No show",
 };
+/** Quiet rows: the forward step outlined, starting / approving in teal (it means in), stopping steps as ghosts */
 const VARIANT: Partial<Record<AppointmentStatus, ButtonProps["variant"]>> = {
   BOOKED: "success",
-  DECLINED: "danger",
-  CHECKED_IN: "primary",
+  DECLINED: "ghost",
+  CHECKED_IN: "secondary",
   WAITING: "secondary",
   IN_PROGRESS: "success",
   COMPLETED: "primary",
-  CANCELLED: "danger",
-  NO_SHOW: "secondary",
+  CANCELLED: "ghost",
+  NO_SHOW: "ghost",
 };
 
 export function StatusActions({ id, actions, size = "sm" }: { id: string; actions: AppointmentStatus[]; size?: "sm" | "md" }) {
@@ -32,10 +33,11 @@ export function StatusActions({ id, actions, size = "sm" }: { id: string; action
   const [err, setErr] = useState<string | null>(null);
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {actions.map((s) => (
           <Button
             key={s}
+            type="button"
             size={size}
             variant={VARIANT[s]}
             disabled={!!busy}
@@ -54,11 +56,11 @@ export function StatusActions({ id, actions, size = "sm" }: { id: string; action
               }
             }}
           >
-            {busy === s ? "…" : LABEL[s]}
+            {busy === s ? "Saving…" : LABEL[s]}
           </Button>
         ))}
       </div>
-      {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
+      {err && <p role="alert" className="mt-1 text-sm text-error">{err}</p>}
     </div>
   );
 }

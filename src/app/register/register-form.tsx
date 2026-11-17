@@ -58,7 +58,7 @@ export default function RegisterForm({ timezones }: { timezones: string[] }) {
           {timezones.map((t) => <option key={t}>{t}</option>)}
         </Select>
       </Field>
-      <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-4 text-sm font-semibold text-slate-700">Admin account</div>
+      <div className="sm:col-span-2 mt-2 border-t border-rule pt-4 text-sm font-semibold text-ink-2">Admin account</div>
       <Field label="Your name"><Input name="adminName" required autoComplete="name" /></Field>
       <Field label="Email"><Input name="email" type="email" required autoComplete="email" /></Field>
       <Field label="Password" hint="At least 8 characters" className="sm:col-span-2"><Input name="password" type="password" required minLength={8} autoComplete="new-password" /></Field>

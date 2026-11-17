@@ -64,31 +64,31 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
     <div className="space-y-6">
       <Card>
         <CardHeader title="Weekly working hours" description={`Times in ${timezone}. Slots are generated automatically from these hours.`} />
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-rule">
           {days.map((d, i) => (
             <div key={d.weekday} className="flex flex-wrap items-center gap-3 px-5 py-3">
               <label className="flex w-36 items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={d.enabled} onChange={(e) => upd(i, { enabled: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-brand-600" />
+                <input type="checkbox" checked={d.enabled} onChange={(e) => upd(i, { enabled: e.target.checked })} className="h-4 w-4 rounded border-rule accent-ink" />
                 {DAYS[i]}
               </label>
               {d.enabled ? (
                 <>
                   <div className="flex items-center gap-1.5 text-sm">
                     <Input type="time" value={d.startTime} onChange={(e) => upd(i, { startTime: e.target.value })} className="h-9 w-32" />
-                    <span className="text-slate-400">to</span>
+                    <span className="text-muted">to</span>
                     <Input type="time" value={d.endTime} onChange={(e) => upd(i, { endTime: e.target.value })} className="h-9 w-32" />
                   </div>
                   <div className="flex items-center gap-1.5 text-sm">
-                    <span className="text-slate-500">Break</span>
+                    <span className="text-muted">Break</span>
                     <Input type="time" value={d.breakStart} onChange={(e) => upd(i, { breakStart: e.target.value })} className="h-9 w-32" />
-                    <span className="text-slate-400">–</span>
+                    <span className="text-muted">to</span>
                     <Input type="time" value={d.breakEnd} onChange={(e) => upd(i, { breakEnd: e.target.value })} className="h-9 w-32" />
-                    {(d.breakStart || d.breakEnd) && <button className="text-xs text-slate-400 hover:text-rose-600" onClick={() => upd(i, { breakStart: "", breakEnd: "" })}>clear</button>}
+                    {(d.breakStart || d.breakEnd) && <button className="text-xs text-muted hover:text-error" onClick={() => upd(i, { breakStart: "", breakEnd: "" })}>clear</button>}
                   </div>
                   <Badge tone="brand">{perDay(d)} start times</Badge>
                 </>
               ) : (
-                <span className="text-sm text-slate-400">Day off</span>
+                <span className="text-sm text-muted">Day off</span>
               )}
             </div>
           ))}
@@ -124,21 +124,21 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
             <Input type="number" min={0} value={s.minNoticeMin} onChange={(e) => setS({ ...s, minNoticeMin: +e.target.value })} />
           </Field>
           <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-            <input type="checkbox" checked={s.allowSameDay} onChange={(e) => setS({ ...s, allowSameDay: e.target.checked })} className="h-4 w-4 accent-brand-600" />
+            <input type="checkbox" checked={s.allowSameDay} onChange={(e) => setS({ ...s, allowSameDay: e.target.checked })} className="h-4 w-4 accent-ink" />
             Allow same-day booking
           </label>
           <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-            <input type="checkbox" checked={s.isBookable} onChange={(e) => setS({ ...s, isBookable: e.target.checked })} className="h-4 w-4 accent-brand-600" />
+            <input type="checkbox" checked={s.isBookable} onChange={(e) => setS({ ...s, isBookable: e.target.checked })} className="h-4 w-4 accent-ink" />
             Accepting online bookings
           </label>
           <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-            <input type="checkbox" checked={s.requiresApproval} onChange={(e) => setS({ ...s, requiresApproval: e.target.checked })} className="h-4 w-4 accent-brand-600" />
+            <input type="checkbox" checked={s.requiresApproval} onChange={(e) => setS({ ...s, requiresApproval: e.target.checked })} className="h-4 w-4 accent-ink" />
             Bookings need my approval
           </label>
         </div>
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-3 border-t border-rule px-5 py-4">
           <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save availability"}</Button>
-          {msg && <span className={msg.tone === "green" ? "text-sm text-emerald-700" : "text-sm text-rose-700"}>{msg.text}</span>}
+          {msg && <span className={msg.tone === "green" ? "text-sm text-accent-soft-ink" : "text-sm text-error"}>{msg.text}</span>}
         </div>
       </Card>
 
@@ -158,7 +158,7 @@ function BlocksCard({ officerId, blocks, timezone }: { officerId: string; blocks
     <Card>
       <CardHeader title="Holidays, leave & overrides" description="Block time off, or open special hours that replace the weekly schedule for that day." />
       <form
-        className="grid gap-3 border-b border-slate-100 p-5 sm:grid-cols-2 lg:grid-cols-6"
+        className="grid gap-3 border-b border-rule p-5 sm:grid-cols-2 lg:grid-cols-6"
         onSubmit={async (e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
@@ -195,22 +195,22 @@ function BlocksCard({ officerId, blocks, timezone }: { officerId: string; blocks
         )}
         <Field label="Reason"><Input name="reason" placeholder={kind === "UNAVAILABLE" ? "e.g. Diwali holiday" : "e.g. Extra exam-week hours"} /></Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm">
-          <input type="checkbox" checked={allDay} disabled={kind === "AVAILABLE"} onChange={(e) => setAllDay(e.target.checked)} className="h-4 w-4 accent-brand-600" /> Full day(s)
+          <input type="checkbox" checked={allDay} disabled={kind === "AVAILABLE"} onChange={(e) => setAllDay(e.target.checked)} className="h-4 w-4 accent-ink" /> Full day(s)
         </label>
         <Button className="self-end" disabled={busy}>{busy ? "Adding…" : "Add"}</Button>
         {err && <div className="sm:col-span-2 lg:col-span-6"><Alert>{err}</Alert></div>}
       </form>
       {blocks.length ? (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-rule">
           {blocks.map((b) => (
             <li key={b.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={b.kind === "UNAVAILABLE" ? "rose" : "green"}>{b.kind === "UNAVAILABLE" ? "Unavailable" : "Special hours"}</Badge>
                 <span className="font-medium">{b.label}</span>
-                {b.reason && <span className="text-slate-500">— {b.reason}</span>}
+                {b.reason && <span className="text-muted">{b.reason}</span>}
               </div>
               <button
-                className="text-xs font-medium text-slate-400 hover:text-rose-600"
+                className="text-xs font-medium text-muted hover:text-error"
                 onClick={async () => {
                   await api(`/api/availability/blocks/${b.id}`, { method: "DELETE" });
                   router.refresh();
@@ -222,7 +222,7 @@ function BlocksCard({ officerId, blocks, timezone }: { officerId: string; blocks
           ))}
         </ul>
       ) : (
-        <p className="px-5 py-4 text-sm text-slate-500">No upcoming holidays or overrides. ({timezone})</p>
+        <p className="px-5 py-4 text-sm text-muted">No upcoming holidays or overrides. ({timezone})</p>
       )}
     </Card>
   );

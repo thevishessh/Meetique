@@ -23,7 +23,7 @@ export default async function StaffPage() {
         <StaffManager staff={staff} me={user.id} departments={departments} />
       </Card>
       <Card>
-        <CardHeader title="Bulk import staff (CSV)" description="Paste from Excel/CSV — one person per line: name, email, L Code (compulsory), department, designation, phone. Missing departments are created. Everyone must set their own password at first sign-in." />
+        <CardHeader title="Bulk import staff (CSV)" description="Paste from Excel or CSV, one person per line: name, email, L Code (compulsory), department, designation, phone. Missing departments are created. Everyone must set their own password at first sign-in." />
         <StaffImport />
       </Card>
     </div>

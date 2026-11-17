@@ -32,7 +32,7 @@ function navFor(user: SessionUser): { href: string; label: string }[] {
         book,
       ];
     case "STAFF":
-      return user.pa ? [mine, book, { href: "/reception", label: `Reception (PA · ${user.pa.officerName})` }] : [mine, book];
+      return user.pa ? [mine, book, { href: "/reception", label: `Reception for ${user.pa.officerName}` }] : [mine, book];
     default:
       return [{ href: "/reception", label: "Reception desk" }];
   }
@@ -42,25 +42,27 @@ const ROLE_LABEL: Record<SessionUser["role"], string> = { ADMIN: "Organization a
 
 export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <header className="no-print sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className="shrink-0"><Logo /></Link>
-          <span className="hidden truncate rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 md:inline">{user.org.name}</span>
-          <div className="ml-auto flex items-center gap-3">
-            <Link href="/account" className="hidden text-right sm:block" title="My account / change password">
-              <div className="text-sm font-medium leading-tight text-slate-900 hover:text-brand-700">{user.name}</div>
-              <div className="text-xs text-slate-500">{user.pa ? `PA to ${user.pa.officerName}` : ROLE_LABEL[user.role]}</div>
+    <div className="min-h-screen bg-paper">
+      <header className="no-print sticky top-0 z-[var(--z-sticky-nav)] border-b border-rule bg-paper">
+        <div className="container flex items-center gap-4 pt-4 pb-2">
+          <Link href="/" className="flex min-w-0 shrink-0 flex-col leading-tight" aria-label={`${user.org.name}, home`}>
+            <Logo />
+            <span className="hidden truncate text-xs text-muted md:block">{user.org.name}</span>
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link href="/account" className="mr-2 hidden text-right sm:block" title="My account: phone alerts and password">
+              <div className="text-sm font-semibold leading-tight text-ink underline decoration-transparent underline-offset-4 hover:decoration-accent">{user.name}</div>
+              <div className="text-xs text-muted">{user.pa ? `PA to ${user.pa.officerName}` : ROLE_LABEL[user.role]}</div>
             </Link>
             <NotificationBell />
             <LogoutButton />
           </div>
         </div>
-        <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
+        <div className="container overflow-x-auto">
           <NavLinks items={navFor(user)} />
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="container py-10">
         <UrgentAlert />
         <PushPrompt />
         {children}

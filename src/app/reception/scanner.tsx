@@ -25,7 +25,7 @@ export function Scanner() {
       setBusy(true);
       try {
         const r = await api<{ tokenNumber: string; visitor: string; officer: string; time: string; message: string; status: string }>("/api/check-in", { body: { scan } });
-        setResult({ ok: r.message === "Checked in", title: `${r.message} · ${r.tokenNumber}`, lines: [r.visitor, `${r.officer} · ${r.time}`] });
+        setResult({ ok: r.message === "Checked in", title: `${r.message}: ${r.tokenNumber}`, lines: [r.visitor, `${r.officer}, ${r.time}`] });
         router.refresh();
       } catch (e) {
         setResult({ ok: false, title: (e as Error).message, lines: [] });
@@ -84,12 +84,12 @@ export function Scanner() {
     <Card>
       <CardHeader title="Scan QR token" description="Point the camera at the visitor's QR, or enter the token number." action={on ? <Button size="sm" variant="secondary" onClick={stop}>Stop camera</Button> : <Button size="sm" onClick={start}>Start camera</Button>} />
       <div className="space-y-4 p-5">
-        <div className={cx("relative overflow-hidden rounded-xl bg-slate-900", on ? "aspect-video" : "hidden")}>
-          <video ref={video} className="h-full w-full object-cover" muted playsInline />
-          <div className="pointer-events-none absolute inset-0 m-auto h-40 w-40 rounded-2xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+        <div className={cx("relative overflow-hidden rounded-xl bg-ink", on ? "aspect-video" : "hidden")}>
+          <video ref={video} className="h-full w-full object-cover" muted playsInline aria-label="Camera view for scanning QR tokens" />
+          <div className="pointer-events-none absolute inset-0 m-auto h-40 w-40 rounded-card border-2 border-paper" />
         </div>
-        <canvas ref={canvas} className="hidden" />
-        {camErr && <p className="text-sm text-amber-700">{camErr}</p>}
+        <canvas ref={canvas} className="hidden" aria-hidden="true" />
+        {camErr && <p className="text-sm text-ink">{camErr}</p>}
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -97,11 +97,11 @@ export function Scanner() {
             if (manual.trim()) void submit(manual.trim());
           }}
         >
-          <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Token number, e.g. ABC-2026-000124" className="font-mono uppercase" />
+          <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Token number, e.g. ABC-2026-000124" className="token-no uppercase" />
           <Button className="shrink-0 whitespace-nowrap" disabled={busy || !manual.trim()}>{busy ? "…" : "Check in"}</Button>
         </form>
         {result && (
-          <div className={cx("rounded-xl px-4 py-3 ring-1 ring-inset", result.ok ? "bg-emerald-50 text-emerald-900 ring-emerald-200" : "bg-rose-50 text-rose-900 ring-rose-200")}>
+          <div className={cx("rounded-xl px-4 py-3 ring-1 ring-inset", result.ok ? "bg-accent-soft text-accent-soft-ink ring-accent-soft" : "bg-paper text-error ring-error")}>
             <div className="font-semibold">{result.ok ? "✓ " : "✕ "}{result.title}</div>
             {result.lines.map((l) => <div key={l} className="text-sm">{l}</div>)}
           </div>

@@ -76,11 +76,11 @@ export function PushPrompt() {
   }, []);
   if (hidden || state !== "off") return null;
   return (
-    <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-50 px-5 py-4 ring-1 ring-inset ring-brand-200">
-      <div className="text-sm text-brand-900">
-        <b>Turn on phone alerts</b> — get notified on this phone/computer when an officer calls you or a meeting changes, even when this app is closed.
-        {isIOS() && !isStandalone() && <span className="block text-xs text-brand-700">iPhone: first tap Share → “Add to Home Screen”, open the app from there, then turn alerts on.</span>}
-        {err && <span className="block text-xs text-rose-700">{err}</span>}
+    <div className="no-print well mb-8 flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+      <div className="text-sm text-ink">
+        <b>Turn on phone alerts.</b> Hear about it on this phone or computer when an officer calls you or a meeting changes, even with the app closed.
+        {isIOS() && !isStandalone() && <span className="mt-1 block text-xs text-muted">On iPhone: tap Share, then “Add to Home Screen”, open the app from there and turn alerts on.</span>}
+        {err && <span className="block text-xs text-error">{err}</span>}
       </div>
       <div className="flex gap-2">
         <Button size="sm" onClick={() => enable().catch((e) => setErr(String(e?.message ?? e)))}>Turn on</Button>
@@ -105,23 +105,23 @@ export function PhoneAlertsCard() {
   };
   return (
     <Card>
-      <CardHeader title="Phone & desktop alerts" description="Alerts for immediate meetings, new bookings, approvals, cancellations and 15-minute reminders — even when the app is closed." />
+      <CardHeader title="Phone & desktop alerts" description="Alerts for immediate meetings, new bookings, approvals, cancellations and 15-minute reminders, even with the app closed." />
       <div className="space-y-3 p-5 text-sm">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-        {state === "loading" && <p className="text-slate-500">Checking…</p>}
-        {state === "unsupported" && <Alert tone="amber">This browser can't receive push alerts. Use Chrome / Edge / Firefox on Android or desktop{isIOS() ? ", or on iPhone add this app to the Home Screen first (Share → Add to Home Screen)" : ""}. Alerts need HTTPS on a live server.</Alert>}
-        {state === "blocked" && <Alert tone="rose">Alerts are blocked for this site. Open the browser's site settings (lock icon in the address bar) → Notifications → Allow, then reload.</Alert>}
+        {state === "loading" && <p className="text-muted">Checking…</p>}
+        {state === "unsupported" && <Alert tone="amber">This browser can’t receive push alerts. Use Chrome, Edge or Firefox on Android or a computer{isIOS() ? ", or on iPhone add the app to the Home Screen first (Share, then Add to Home Screen)" : ""}. Alerts need HTTPS on a live server.</Alert>}
+        {state === "blocked" && <Alert tone="rose">Alerts are blocked for this site. Open the browser’s site settings (the lock icon in the address bar), set Notifications to Allow, then reload.</Alert>}
         {state === "off" && (
           <>
-            <p className="text-slate-600">Alerts are <b>off</b> on this device.</p>
+            <p className="text-ink-2">Alerts are <b>off</b> on this device.</p>
             <Button onClick={() => run(enable, "Alerts turned on for this device.")}>Turn on alerts on this device</Button>
           </>
         )}
         {state === "on" && (
           <>
-            <p className="text-emerald-700">✓ Alerts are <b>on</b> for this device. Turn them on separately on each phone / computer you use.</p>
+            <p className="text-accent-soft-ink">✓ Alerts are <b>on</b> for this device. Turn them on separately on each phone / computer you use.</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => run(async () => { const r = await api<{ sent: number }>("/api/push/test", { method: "POST" }); if (!r.sent) throw new Error("No device received it — try turning alerts off and on again."); }, "Test alert sent — it should appear in a few seconds.")}>Send test alert</Button>
+              <Button variant="secondary" onClick={() => run(async () => { const r = await api<{ sent: number }>("/api/push/test", { method: "POST" }); if (!r.sent) throw new Error("No device received it. Turn alerts off and on again."); }, "Test alert sent. It should appear in a few seconds.")}>Send test alert</Button>
               <Button variant="ghost" onClick={() => run(disable, "Alerts turned off for this device.")}>Turn off</Button>
             </div>
           </>

@@ -20,9 +20,9 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
     return (
       <Shell>
         <Card className="p-8 text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-rose-100 text-2xl text-rose-600">✕</div>
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-paper text-2xl text-error">✕</div>
           <h1 className="mt-4 text-xl font-semibold">Invalid token</h1>
-          <p className="mt-1 text-sm text-slate-500">This QR code does not match any appointment.</p>
+          <p className="mt-1 text-sm text-muted">This QR code does not match any appointment.</p>
         </Card>
       </Shell>
     );
@@ -45,9 +45,9 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
   return (
     <Shell staffHome={staff ? homeFor(staff.role) : undefined}>
       <Card className="overflow-hidden">
-        <div className={`px-6 py-5 text-white ${valid ? "bg-emerald-600" : "bg-rose-600"}`}>
+        <div className={`px-6 py-5 text-paper ${valid ? "bg-accent" : "bg-ink"}`}>
           <div className="text-sm font-medium opacity-90">{valid ? "✓ Valid Appointment" : "✕ Not valid"}</div>
-          <div className="mt-1 font-mono text-2xl font-bold tracking-wider">{t.tokenNumber}</div>
+          <div className="mt-1 token-no text-2xl font-bold tracking-wider">{t.tokenNumber}</div>
           {valid && !isToday && <div className="mt-1 text-sm">Note: this appointment is not for today.</div>}
         </div>
         <dl className="space-y-2.5 p-6 text-sm">
@@ -66,19 +66,19 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
             ] as [string, React.ReactNode][]
           ).map(([k, v]) => (
             <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2">
-              <dt className="text-slate-500">{k}</dt>
-              <dd className="font-medium text-slate-900">{v}</dd>
+              <dt className="text-muted">{k}</dt>
+              <dd className="font-medium text-ink">{v}</dd>
             </div>
           ))}
         </dl>
         {actions.length > 0 && (
-          <div className="border-t border-slate-100 px-6 py-4">
+          <div className="border-t border-rule px-6 py-4">
             <StatusActions id={a.id} actions={actions} size="md" />
           </div>
         )}
         {!staff && (
-          <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 text-xs text-slate-500">
-            Reception staff: <Link className="text-brand-600 hover:underline" href="/login">sign in</Link> to check this visitor in.
+          <div className="border-t border-rule bg-paper-2 px-6 py-3 text-xs text-muted">
+            Reception staff: <Link className="text-ink hover:underline" href="/login">sign in</Link> to check this visitor in.
           </div>
         )}
       </Card>
@@ -92,7 +92,7 @@ function Shell({ children, staffHome }: { children: React.ReactNode; staffHome?:
       <div className="mx-auto max-w-md">
         <div className="mb-6 flex items-center justify-between">
           <Logo className="text-sm" />
-          {staffHome && <Link href={staffHome} className="text-sm font-medium text-brand-600">Dashboard →</Link>}
+          {staffHome && <Link href={staffHome} className="link text-sm">Open my desk</Link>}
         </div>
         {children}
       </div>

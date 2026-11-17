@@ -42,9 +42,9 @@ export default async function Home() {
 
       <main className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
         <section className="py-14 text-center sm:py-20">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Appointments · QR tokens · Queues</p>
-          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">{APP_TAGLINE}</h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
+          <p className="text-sm font-semibold uppercase tracking-wider text-ink">Appointments · QR tokens · Queues</p>
+          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-semibold text-ink sm:text-5xl">{APP_TAGLINE}</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-ink-2">
             {APP_NAME} lets universities, hospitals, offices and professionals publish officer availability, take bookings, issue QR tokens and run the reception queue — from one place.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -56,18 +56,18 @@ export default async function Home() {
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
             <Card key={f.t} className="p-6">
-              <h3 className="font-semibold text-slate-900">{f.t}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{f.d}</p>
+              <h3 className="font-semibold text-ink">{f.t}</h3>
+              <p className="mt-2 text-sm leading-6 text-ink-2">{f.d}</p>
             </Card>
           ))}
         </section>
 
         {orgs.length > 0 && (
           <section className="mt-14">
-            <h2 className="text-lg font-semibold text-slate-900">Book an appointment</h2>
+            <h2 className="text-lg font-semibold text-ink">Book an appointment</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {orgs.map((o) => (
-                <Link key={o.slug} href={`/o/${o.slug}`} className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm ring-1 ring-slate-200 hover:ring-brand-300">
+                <Link key={o.slug} href={`/o/${o.slug}`} className="rounded-xl bg-paper px-4 py-3 text-sm font-medium text-ink ring-1 ring-rule hover:ring-ink">
                   {o.name} →
                 </Link>
               ))}

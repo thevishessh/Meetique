@@ -47,19 +47,19 @@ export default async function SummonPage() {
       <Card>
         <CardHeader title="Meetings you called" description="Live: see who has acknowledged" />
         {recent.length ? (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-rule">
             {recent.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
                 <div>
-                  <div className="font-medium text-slate-900">{a.visitor.name}</div>
-                  <div className="text-slate-500">{fmtDate(a.startAt, tz)}, {fmtRange(a.startAt, a.endAt, tz)}{a.purpose ? ` · “${a.purpose}”` : ""}</div>
+                  <div className="font-medium text-ink">{a.visitor.name}</div>
+                  <div className="text-muted">{fmtDate(a.startAt, tz)}, {fmtRange(a.startAt, a.endAt, tz)}{a.purpose ? `. “${a.purpose}”` : ""}</div>
                 </div>
                 <div className="flex items-center gap-2"><ResponseBadge r={a} /><StatusBadge status={a.status} /></div>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="p-5"><Empty title="You haven't called any meetings yet" /></div>
+          <Empty title="You haven't called any meetings yet" />
         )}
       </Card>
     </div>

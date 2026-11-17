@@ -6,7 +6,7 @@ import { Button } from "./ui";
 
 type Urgent = { id: string; officer: string; designation: string; location: string | null; when: string; purpose: string | null; response: "ACKNOWLEDGED" | "ON_MY_WAY" | null; status: string };
 
-/** Short two-tone alert sound (Web Audio — no file needed) */
+/** Short two-tone alert sound (Web Audio, no file needed) */
 function beep() {
   try {
     const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -39,13 +39,13 @@ export function UrgentAlert() {
       if (fresh.length) {
         beep();
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          new Notification("Immediate meeting", { body: `${fresh[0].officer} has called you${fresh[0].location ? ` — ${fresh[0].location}` : ""}` });
+          new Notification("Immediate meeting", { body: `${fresh[0].officer} has called you${fresh[0].location ? `, ${fresh[0].location}` : ""}` });
         }
       }
       seen.current = new Set(data.map((d) => d.id));
       setItems(data);
     } catch {
-      /* signed out or offline — try again next tick */
+      /* signed out or offline: try again next tick */
     }
   }, []);
 
@@ -57,20 +57,37 @@ export function UrgentAlert() {
   }, [load]);
 
   if (!items.length) return null;
+  const respond = async (id: string, response: "ACKNOWLEDGED" | "ON_MY_WAY") => {
+    await api(`/api/appointments/${id}/respond`, { body: { response } });
+    await load();
+    router.refresh();
+  };
   return (
-    <div className="no-print mb-6 space-y-3">
+    <div className="no-print mb-8 space-y-3" role="region" aria-label="Immediate meetings">
       {items.map((u) => (
-        <div key={u.id} className={`rounded-2xl p-4 ring-1 ring-inset sm:p-5 ${u.response ? "bg-amber-50 ring-amber-200" : "animate-pulse bg-rose-50 ring-rose-300 [animation-iteration-count:3]"}`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div
+          key={u.id}
+          role={u.response ? undefined : "alert"}
+          className={u.response ? "well px-5 py-4" : "rounded-card bg-ink px-5 py-5 text-paper"}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-xs font-bold uppercase tracking-wider text-rose-700">Immediate meeting{u.response === "ON_MY_WAY" ? " · you're on the way" : u.response === "ACKNOWLEDGED" ? " · acknowledged" : ""}</div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">{u.officer} <span className="font-normal text-slate-600">({u.designation})</span> has called you</div>
-              <div className="text-sm text-slate-700">{u.when}{u.location ? ` · ${u.location}` : ""}</div>
-              {u.purpose && <div className="mt-1 text-sm text-slate-600">“{u.purpose}”</div>}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={u.response ? "tag tag--on" : "tag"}>Immediate meeting</span>
+                {u.response && <span className="tag tag--in">{u.response === "ON_MY_WAY" ? "You're on the way" : "Acknowledged"}</span>}
+              </div>
+              <p className={`mt-2 font-display text-xl font-bold tracking-[var(--tracking-display)] ${u.response ? "text-ink" : "text-paper"}`}>
+                {u.officer} has called you
+              </p>
+              <p className={`mt-1 text-sm ${u.response ? "text-ink-2" : "text-paper"}`}>
+                {u.designation}, {u.when}
+                {u.location && <><br />{u.location}</>}
+              </p>
+              {u.purpose && <p className={`mt-2 text-sm ${u.response ? "text-ink-2" : "text-paper"}`}>“{u.purpose}”</p>}
             </div>
             <div className="flex gap-2">
-              {!u.response && <Button variant="secondary" onClick={async () => { await api(`/api/appointments/${u.id}/respond`, { body: { response: "ACKNOWLEDGED" } }); await load(); router.refresh(); }}>Acknowledge</Button>}
-              {u.response !== "ON_MY_WAY" && <Button variant="success" onClick={async () => { await api(`/api/appointments/${u.id}/respond`, { body: { response: "ON_MY_WAY" } }); await load(); router.refresh(); }}>On my way</Button>}
+              {!u.response && <Button type="button" variant="secondary" onClick={() => respond(u.id, "ACKNOWLEDGED")}>Acknowledge</Button>}
+              {u.response !== "ON_MY_WAY" && <Button type="button" variant="success" onClick={() => respond(u.id, "ON_MY_WAY")}>On my way</Button>}
             </div>
           </div>
         </div>

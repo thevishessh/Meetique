@@ -28,16 +28,16 @@ export function PaManager({ officerId, officerName, current, candidates }: { off
       <div className="space-y-3 p-5">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         {current.length ? (
-          <ul className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
+          <ul className="divide-y divide-rule rounded-lg ring-1 ring-rule">
             {current.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span><b>{p.name}</b> <span className="text-slate-500">{p.detail}</span></span>
+                <span><b>{p.name}</b> <span className="text-muted">{p.detail}</span></span>
                 <Button size="sm" variant="danger" onClick={() => set(p.id, null, `${p.name} is no longer PA.`)}>Remove</Button>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">No PA assigned.</p>
+          <p className="text-sm text-muted">No PA assigned.</p>
         )}
         <div className="flex flex-wrap gap-2">
           <Select value={pick} onChange={(e) => setPick(e.target.value)} className="max-w-sm">
@@ -46,7 +46,7 @@ export function PaManager({ officerId, officerName, current, candidates }: { off
           </Select>
           <Button disabled={!pick} onClick={() => set(pick, officerId, "PA assigned. They will see the Reception desk at their next page load.")}>Make PA</Button>
         </div>
-        <p className="text-xs text-slate-500">Only staff accounts can be a PA. Add the person first under Admin → Staff if needed. A person can be PA to one officer at a time.</p>
+        <p className="text-xs text-muted">Only staff accounts can be a PA. Add the person first on the Staff page if needed. A person can be PA to one officer at a time.</p>
       </div>
     </Card>
   );

@@ -1,6 +1,6 @@
 # Chandigarh University, Unnao Campus — Staff Meeting System Guide
 
-यह guide बताती है कि **CU Unnao Meetings** में कौन-सी चीज़ कहाँ से हो रही है: कौन किस page पर क्या करता है, कौन-सी file वो काम करती है, data कहाँ save होता है, और कोई चीज़ बदलनी हो तो कहाँ बदलें।
+यह guide बताती है कि **CU Meetings** में कौन-सी चीज़ कहाँ से हो रही है: कौन किस page पर क्या करता है, कौन-सी file वो काम करती है, data कहाँ save होता है, और कोई चीज़ बदलनी हो तो कहाँ बदलें।
 
 **यह internal system है:** बाहर के लोग booking नहीं कर सकते। University staff अपने login से officers के साथ meeting book करते हैं। **Designated officers** (Director, Registrar) एक या कई लोगों को **तुरंत meeting** के लिए बुला सकते हैं, और उन्हें screen और **phone** दोनों पर alert जाता है।
 
@@ -10,7 +10,7 @@
 
 | चीज़ | Value |
 |---|---|
-| App का नाम | CU Unnao Meetings |
+| App का नाम | CU Meetings |
 | Address (local) | `http://localhost:3001` → login page |
 | Token format | `CUU-2026-000001`, … |
 | Timezone | Asia/Kolkata (IST) |

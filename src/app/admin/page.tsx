@@ -5,7 +5,7 @@ import { APP_URL } from "@/lib/config";
 import { dayBounds, todayIn, fmtLongDate } from "@/lib/time";
 import { ACTIVE_STATUSES } from "@/lib/status";
 import { AppointmentTable, apptInclude } from "@/components/appointment-table";
-import { Card, CardHeader, PageHeader, Stat, Alert, ButtonLink } from "@/components/ui";
+import { Card, CardHeader, PageHeader, Stat, Stats, Alert, ButtonLink } from "@/components/ui";
 import { CopyButton } from "@/components/copy-button";
 import { AutoRefresh } from "@/components/nav-client";
 
@@ -34,28 +34,28 @@ export default async function AdminHome() {
 
       {officerCount === 0 && (
         <Alert tone="brand">
-          <b>Get started:</b> <Link className="underline" href="/admin/departments">add departments</Link>, then <Link className="underline" href="/admin/officers">add officers</Link> — visitors can book as soon as an officer has working hours.
+          <b>Get started:</b> <Link className="underline" href="/admin/departments">add departments</Link>, then <Link className="underline" href="/admin/officers">add officers</Link>; visitors can book as soon as an officer has working hours.
         </Alert>
       )}
 
       <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-slate-500">Public booking link</div>
-          <a href={bookingUrl} target="_blank" className="block truncate font-mono text-sm text-brand-700 hover:underline">{bookingUrl}</a>
+          <div className="text-sm font-medium text-muted">Public booking link</div>
+          <a href={bookingUrl} target="_blank" className="block truncate token-no text-sm text-ink hover:underline">{bookingUrl}</a>
         </div>
         <CopyButton text={bookingUrl} />
       </Card>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <Stats>
         <Stat label="Today" value={todays.length} hint="appointments" />
-        <Stat label="Waiting now" value={count(["CHECKED_IN", "WAITING"])} tone="text-amber-600" />
-        <Stat label="In progress" value={count(["IN_PROGRESS"])} tone="text-emerald-600" />
+        <Stat label="Waiting now" value={count(["CHECKED_IN", "WAITING"])} tone="in" />
+        <Stat label="In progress" value={count(["IN_PROGRESS"])} />
         <Stat label="Completed" value={count(["COMPLETED"])} />
-        <Stat label="Upcoming" value={upcomingCount} hint={`${officerCount} officers · ${deptCount} departments`} />
-      </div>
+        <Stat label="Upcoming" value={upcomingCount} hint={`${officerCount} officers, ${deptCount} departments`} />
+      </Stats>
 
       <Card>
-        <CardHeader title="Today's appointments" description={`${count(ACTIVE_STATUSES)} active · ${count(["CANCELLED"])} cancelled · ${count(["NO_SHOW"])} no-show`} action={<ButtonLink href="/reception" size="sm" variant="secondary">Open reception desk</ButtonLink>} />
+        <CardHeader title="Today's appointments" description={`${count(ACTIVE_STATUSES)} active, ${count(["CANCELLED"])} cancelled, ${count(["NO_SHOW"])} no-show`} action={<ButtonLink href="/reception" size="sm" variant="secondary">Open reception desk</ButtonLink>} />
         <AppointmentTable rows={todays} tz={tz} role="ADMIN" empty="No appointments today" />
       </Card>
     </div>

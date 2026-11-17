@@ -84,44 +84,44 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
           <Field label="Who do you want to meet? (select one or more)">
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, designation, department or L Code" />
           </Field>
-          <ul className="mt-2 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg ring-1 ring-slate-200">
+          <ul className="mt-2 max-h-80 divide-y divide-rule overflow-y-auto rounded-lg ring-1 ring-rule">
             {matches.map((p) => {
               const on = picked.some((x) => x.id === p.id);
               return (
                 <li key={p.id}>
-                  <button type="button" onClick={() => toggle(p)} className={cx("flex w-full items-center gap-3 px-3 py-2 text-left text-sm", on ? "bg-brand-50" : "hover:bg-slate-50")}>
-                    <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded border text-[10px]", on ? "border-brand-600 bg-brand-600 text-white" : "border-slate-300")}>{on ? "✓" : ""}</span>
+                  <button type="button" onClick={() => toggle(p)} className={cx("flex w-full items-center gap-3 px-3 py-2 text-left text-sm", on ? "bg-accent-soft" : "hover:bg-paper-2")}>
+                    <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded border text-[10px]", on ? "border-ink bg-ink text-paper" : "border-rule")}>{on ? "✓" : ""}</span>
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-slate-900">{p.name}</span>
-                      <span className="block truncate text-xs text-slate-500">{[p.title, p.department, p.employeeId && `L Code ${p.employeeId}`].filter(Boolean).join(" · ")}</span>
+                      <span className="block truncate font-medium text-ink">{p.name}</span>
+                      <span className="block truncate text-xs text-muted">{[p.title, p.department, p.employeeId && `L Code ${p.employeeId}`].filter(Boolean).join(", ")}</span>
                     </span>
                   </button>
                 </li>
               );
             })}
-            {!matches.length && <li className="px-3 py-4 text-center text-sm text-slate-500">No one matches “{q}”</li>}
+            {!matches.length && <li className="px-3 py-4 text-center text-sm text-muted">No one matches “{q}”</li>}
           </ul>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">
+          <div className="rounded-lg bg-paper-2 px-4 py-3 text-sm">
             {picked.length ? (
               <>
                 <div className="mb-1 font-medium">Calling {picked.length} {picked.length === 1 ? "person" : "people"}:</div>
                 <div className="flex flex-wrap gap-1.5">
                   {picked.map((p) => (
-                    <button type="button" key={p.id} onClick={() => toggle(p)} className="rounded-full bg-white px-2.5 py-1 text-xs ring-1 ring-slate-300 hover:ring-rose-300" title="Remove">
+                    <button type="button" key={p.id} onClick={() => toggle(p)} className="rounded-full bg-paper px-2.5 py-1 text-xs ring-1 ring-rule hover:ring-error" title="Remove">
                       {p.name} ✕
                     </button>
                   ))}
                 </div>
               </>
             ) : (
-              <span className="text-slate-500">Nobody selected yet</span>
+              <span className="text-muted">Nobody selected yet</span>
             )}
           </div>
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">When</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink-2">When</span>
             <div className="flex gap-2">
               <Button type="button" variant={mode === "now" ? "primary" : "secondary"} onClick={() => setMode("now")}>Right now</Button>
               <Button type="button" variant={mode === "later" ? "primary" : "secondary"} onClick={() => setMode("later")}>At a set time</Button>
@@ -148,7 +148,7 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
             </Alert>
           )}
           <Field label="Purpose"><Textarea name="purpose" rows={3} required minLength={2} maxLength={300} placeholder="e.g. Urgent: NAAC documentation review" /></Field>
-          <Button size="lg" className="w-full !bg-rose-600 !text-white hover:!bg-rose-700" disabled={sending || !picked.length}>
+          <Button size="lg" className="w-full" disabled={sending || !picked.length}>
             {sending ? "Calling…" : picked.length > 1 ? `Call ${picked.length} people now` : "Call meeting now"}
           </Button>
         </div>

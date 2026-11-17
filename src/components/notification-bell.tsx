@@ -38,7 +38,8 @@ export function NotificationBell() {
     <div ref={box} className="relative">
       <button
         aria-label={`Notifications${data.unread ? ` (${data.unread} unread)` : ""}`}
-        className="relative grid h-9 w-9 place-items-center rounded-lg text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+        type="button"
+        className="btn btn--ghost btn--sm w-8 px-0"
         onClick={async () => {
           setOpen((o) => !o);
           if (!open && data.unread) {
@@ -51,22 +52,22 @@ export function NotificationBell() {
           <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
-        {data.unread > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">{data.unread > 9 ? "9+" : data.unread}</span>}
+        {data.unread > 0 && <span className="num absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-pill bg-ink px-1 text-xs font-semibold text-paper">{data.unread > 9 ? "9+" : data.unread}</span>}
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200">
-          <div className="border-b border-slate-100 px-4 py-2.5 text-sm font-semibold">Notifications</div>
-          <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
+        <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-rule bg-paper shadow-card">
+          <div className="border-b border-ink px-4 py-3 text-sm font-semibold text-ink">Notifications</div>
+          <ul className="max-h-96 divide-y divide-rule overflow-y-auto">
             {data.items.map((n) => (
               <li key={n.id}>
-                <Link href={n.url ?? "#"} onClick={() => setOpen(false)} className={cx("block px-4 py-3 text-sm hover:bg-slate-50", !n.readAt && "bg-brand-50/50")}>
-                  <div className={cx("font-medium", n.urgent ? "text-rose-700" : "text-slate-900")}>{n.title}</div>
-                  <div className="whitespace-pre-line text-xs text-slate-600">{n.body}</div>
-                  <div className="mt-0.5 text-[11px] text-slate-400">{ago(n.createdAt)}</div>
+                <Link href={n.url ?? "#"} onClick={() => setOpen(false)} className={cx("block px-4 py-3 text-sm hover:bg-paper-2", !n.readAt && "bg-paper-2")}>
+                  <div className={cx("text-ink", n.urgent ? "font-bold" : "font-semibold")}>{n.title}</div>
+                  <div className="whitespace-pre-line text-xs text-ink-2">{n.body}</div>
+                  <div className="mt-1 text-xs text-muted">{ago(n.createdAt)}</div>
                 </Link>
               </li>
             ))}
-            {!data.items.length && <li className="px-4 py-6 text-center text-sm text-slate-500">No notifications yet</li>}
+            {!data.items.length && <li className="px-4 py-6 text-center text-sm text-muted">No notifications yet</li>}
           </ul>
         </div>
       )}
