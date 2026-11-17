@@ -38,7 +38,7 @@ export default async function OfficerBooking({ params }: { params: Promise<{ slu
         </div>
       </div>
       {officer.bio && <p className="mt-3 max-w-2xl text-sm text-slate-600">{officer.bio}</p>}
-      <BookingWizard officerId={officer.id} startDate={start} days={days} duration={officer.slotDurationMin} fields={{ visitorCategories: officer.user.organization.visitorCategories, referenceLabel: officer.user.organization.referenceLabel }} identity={me ? { name: me.name, email: me.email } : null} />
+      <BookingWizard officerId={officer.id} startDate={start} days={days} duration={officer.slotDurationMin} fields={{ visitorCategories: officer.user.organization.visitorCategories, referenceLabel: officer.user.organization.referenceLabel }} identity={me ? { name: me.name, email: me.email, lCode: me.employeeId } : null} requiresApproval={officer.requiresApproval} />
     </div>
   );
 }

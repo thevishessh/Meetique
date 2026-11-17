@@ -6,6 +6,8 @@ import { api } from "./client-api";
 import { Button, type ButtonProps } from "./ui";
 
 const LABEL: Partial<Record<AppointmentStatus, string>> = {
+  BOOKED: "Approve",
+  DECLINED: "Decline",
   CHECKED_IN: "Check in",
   WAITING: "Send to waiting",
   IN_PROGRESS: "Start meeting",
@@ -14,6 +16,8 @@ const LABEL: Partial<Record<AppointmentStatus, string>> = {
   NO_SHOW: "No show",
 };
 const VARIANT: Partial<Record<AppointmentStatus, ButtonProps["variant"]>> = {
+  BOOKED: "success",
+  DECLINED: "danger",
   CHECKED_IN: "primary",
   WAITING: "secondary",
   IN_PROGRESS: "success",
@@ -37,6 +41,7 @@ export function StatusActions({ id, actions, size = "sm" }: { id: string; action
             disabled={!!busy}
             onClick={async () => {
               if (s === "CANCELLED" && !confirm("Cancel this appointment? The slot will be released.")) return;
+              if (s === "DECLINED" && !confirm("Decline this meeting request? The person will be told.")) return;
               setBusy(s);
               setErr(null);
               try {

@@ -4,7 +4,7 @@ import { findToken } from "@/lib/booking";
 import { fmtLongDate, fmtRange, localDateOf, todayIn } from "@/lib/time";
 import { Card, Logo, StatusBadge } from "@/components/ui";
 import { StatusActions } from "@/components/status-actions";
-import { nextActions } from "@/lib/status";
+import { INVALID_FOR_ENTRY, nextActions } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Verify token", robots: { index: false } };
@@ -31,7 +31,7 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
   const a = t.appointment;
   const tz = a.organization.timezone;
   const staff = user && user.organizationId === a.organizationId ? user : null;
-  const valid = t.isActive && !["CANCELLED", "NO_SHOW"].includes(a.status);
+  const valid = t.isActive && !INVALID_FOR_ENTRY.includes(a.status);
   const isToday = localDateOf(a.startAt, tz) === todayIn(tz);
   const actions = staff && (staff.role !== "OFFICER" || staff.officerId === a.officerId) ? nextActions(a.status, staff.role) : [];
 

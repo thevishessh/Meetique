@@ -17,6 +17,8 @@ export type Settings = {
   minNoticeMin: number;
   allowSameDay: boolean;
   isBookable: boolean;
+  maxDurationMin: number;
+  requiresApproval: boolean;
 };
 export type BlockView = { id: string; kind: "UNAVAILABLE" | "AVAILABLE"; label: string; reason: string | null };
 
@@ -38,7 +40,7 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
     setBusy(true);
     setMsg(null);
     try {
-      await api("/api/availability", { body: { officerId, days, settings: { ...s, maxPerDay: s.maxPerDay || null } } });
+      await api("/api/availability", { body: { officerId, days, settings: { ...s, maxPerDay: s.maxPerDay || null, maxDurationMin: Math.max(s.maxDurationMin, s.slotDurationMin) } } });
       setMsg({ tone: "green", text: "Availability saved. New slots are live for visitors." });
       router.refresh();
     } catch (e) {
@@ -51,7 +53,8 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
   const perDay = (d: (typeof days)[number]) => {
     if (!d.enabled) return 0;
     const m = (t: string) => +t.slice(0, 2) * 60 + +t.slice(3);
-    const step = s.slotDurationMin + s.bufferMin;
+    // Start times on the slot grid (shortest meeting); a buffer is kept after each booked meeting
+    const step = s.slotDurationMin;
     const win = (a: number, b: number) => (b - a >= s.slotDurationMin ? Math.floor((b - a - s.slotDurationMin) / step) + 1 : 0);
     if (d.breakStart && d.breakEnd) return win(m(d.startTime), m(d.breakStart)) + win(m(d.breakEnd), m(d.endTime));
     return win(m(d.startTime), m(d.endTime));
@@ -82,7 +85,7 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
                     <Input type="time" value={d.breakEnd} onChange={(e) => upd(i, { breakEnd: e.target.value })} className="h-9 w-32" />
                     {(d.breakStart || d.breakEnd) && <button className="text-xs text-slate-400 hover:text-rose-600" onClick={() => upd(i, { breakStart: "", breakEnd: "" })}>clear</button>}
                   </div>
-                  <Badge tone="brand">{perDay(d)} slots</Badge>
+                  <Badge tone="brand">{perDay(d)} start times</Badge>
                 </>
               ) : (
                 <span className="text-sm text-slate-400">Day off</span>
@@ -95,12 +98,17 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
       <Card>
         <CardHeader title="Booking rules" />
         <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Appointment duration">
+          <Field label="Slot length (shortest meeting)" hint="Booking grid; staff can book 1, 2, 3… slots">
             <Select value={s.slotDurationMin} onChange={(e) => setS({ ...s, slotDurationMin: +e.target.value })}>
               {DURATIONS.map((m) => <option key={m} value={m}>{m} minutes</option>)}
             </Select>
           </Field>
-          <Field label="Buffer between slots" hint="Gap after each meeting">
+          <Field label="Longest meeting allowed" hint="Staff choose any length up to this">
+            <Select value={Math.max(s.maxDurationMin, s.slotDurationMin)} onChange={(e) => setS({ ...s, maxDurationMin: +e.target.value })}>
+              {Array.from({ length: 8 }, (_, i) => s.slotDurationMin * (i + 1)).filter((m) => m <= 480).map((m) => <option key={m} value={m}>{m} minutes</option>)}
+            </Select>
+          </Field>
+          <Field label="Buffer after each meeting (min)" hint="Gap kept free after every meeting">
             <Input type="number" min={0} max={60} value={s.bufferMin} onChange={(e) => setS({ ...s, bufferMin: +e.target.value })} />
           </Field>
           <Field label="Capacity per slot" hint="Visitors allowed in one slot">
@@ -122,6 +130,10 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
           <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
             <input type="checkbox" checked={s.isBookable} onChange={(e) => setS({ ...s, isBookable: e.target.checked })} className="h-4 w-4 accent-brand-600" />
             Accepting online bookings
+          </label>
+          <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
+            <input type="checkbox" checked={s.requiresApproval} onChange={(e) => setS({ ...s, requiresApproval: e.target.checked })} className="h-4 w-4 accent-brand-600" />
+            Bookings need my approval
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 px-5 py-4">

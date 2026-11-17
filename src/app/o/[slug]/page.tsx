@@ -62,7 +62,7 @@ export default async function OrgPortal({ params, searchParams }: { params: Prom
               <div className="min-w-0 flex-1">
                 <div className="truncate font-semibold text-slate-900">{o.user.name}</div>
                 <div className="truncate text-sm text-slate-600">{o.designation}</div>
-                <div className="mt-1 text-xs text-slate-500">{o.department?.name ?? "General"} · {o.slotDurationMin} min meetings</div>
+                <div className="mt-1 text-xs text-slate-500">{o.department?.name ?? "General"} · {o.slotDurationMin === o.maxDurationMin ? `${o.slotDurationMin} min` : `${o.slotDurationMin}–${o.maxDurationMin} min`} meetings{o.requiresApproval ? " · needs approval" : ""}</div>
               </div>
               <span className="text-sm font-medium text-brand-600 group-hover:translate-x-0.5 transition">Book →</span>
             </Card>

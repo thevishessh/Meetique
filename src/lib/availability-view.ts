@@ -8,7 +8,7 @@ export async function loadAvailability(officerId: string, tz: string) {
     include: {
       workingHours: true,
       blocks: { where: { endAt: { gt: new Date() } }, orderBy: { startAt: "asc" } },
-      user: { select: { name: true, email: true, phone: true, isActive: true } },
+      user: { select: { name: true, email: true, phone: true, isActive: true, employeeId: true } },
       department: true,
     },
   });
@@ -22,6 +22,8 @@ export async function loadAvailability(officerId: string, tz: string) {
     minNoticeMin: o.minNoticeMin,
     allowSameDay: o.allowSameDay,
     isBookable: o.isBookable,
+    maxDurationMin: o.maxDurationMin,
+    requiresApproval: o.requiresApproval,
   };
   const blocks: BlockView[] = o.blocks.map((b) => {
     const fullDay = fmtTime(b.startAt, tz) === "12:00 AM" && fmtTime(b.endAt, tz) === "11:59 PM";

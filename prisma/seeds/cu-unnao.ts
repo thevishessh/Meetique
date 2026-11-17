@@ -13,7 +13,8 @@
  * the first seed, or change them later from the admin panel.
  *
  * Initial password for every account: CLIENT_INITIAL_PASSWORD from .env (default below).
- * Each person should change it at  /account  after first login.
+ * Everyone is forced to set their own password at first sign-in.
+ * L Codes below (L9xxx) are PLACEHOLDERS — replace with the real employee codes.
  */
 import bcrypt from "bcryptjs";
 import type { PrismaClient } from "../../src/generated/prisma/client";
@@ -53,6 +54,12 @@ type Desk = {
   maxPerDay?: number;
   /** Designated officer: may call anyone for an immediate meeting */
   canSummon?: boolean;
+  /** Bookings wait for this officer's approval */
+  requiresApproval?: boolean;
+  /** Longest meeting staff may book (multiple of slotDurationMin) */
+  maxDurationMin: number;
+  /** L Code (employee code) — placeholder */
+  lCode: string;
   hours?: { weekdays: number[]; startTime: string; endTime: string; breakStart: string | null; breakEnd: string | null };
   bio: string;
 };
@@ -60,49 +67,49 @@ type Desk = {
 const DESKS: Desk[] = [
   {
     department: "Admission Cell", description: "New admissions, eligibility, counselling, documents",
-    name: "Admissions Desk", designation: "Admission Counsellor", email: "admissions", location: "Admission Block, Ground Floor",
+    name: "Admissions Desk", designation: "Admission Counsellor", email: "admissions", lCode: "L9101", maxDurationMin: 45, location: "Admission Block, Ground Floor",
     slotDurationMin: 15, bufferMin: 0, capacityPerSlot: 3, minNoticeMin: 30, advanceBookingDays: 30, allowSameDay: true,
     bio: "Admission enquiries, course counselling, eligibility and document verification.",
   },
   {
     department: "Registrar Office", description: "Certificates, transcripts, verification, migration",
-    name: "Registrar Office", designation: "Registrar", email: "registrar", location: "Administrative Block", canSummon: true,
+    name: "Registrar Office", designation: "Registrar", email: "registrar", lCode: "L9102", maxDurationMin: 60, location: "Administrative Block", canSummon: true,
     slotDurationMin: 15, bufferMin: 5, capacityPerSlot: 1, minNoticeMin: 60, advanceBookingDays: 30, allowSameDay: true,
     bio: "Degree and provisional certificates, transcripts, bonafide and migration certificates, document verification.",
   },
   {
     department: "Examination Cell", description: "Exam forms, admit cards, results, re-evaluation",
-    name: "Examination Cell", designation: "Controller of Examinations", email: "exams", location: "Examination Block",
+    name: "Examination Cell", designation: "Controller of Examinations", email: "exams", lCode: "L9103", maxDurationMin: 60, location: "Examination Block",
     slotDurationMin: 20, bufferMin: 10, capacityPerSlot: 2, minNoticeMin: 60, advanceBookingDays: 30, allowSameDay: true,
     bio: "Examination forms, admit cards, results, re-evaluation and grade-sheet queries.",
   },
   {
     department: "Accounts & Fee Section", description: "Fee payment, receipts, refunds, scholarships",
-    name: "Fee Counter", designation: "Accounts Officer", email: "accounts", location: "Administrative Block, Accounts Section",
+    name: "Fee Counter", designation: "Accounts Officer", email: "accounts", lCode: "L9104", maxDurationMin: 30, location: "Administrative Block, Accounts Section",
     slotDurationMin: 10, bufferMin: 0, capacityPerSlot: 2, minNoticeMin: 30, advanceBookingDays: 30, allowSameDay: true,
     bio: "Fee payment issues, receipts, refunds and scholarship disbursement queries.",
   },
   {
     department: "Training & Placement Cell", description: "Placements, internships, recruiter meetings",
-    name: "Placement Cell", designation: "Training & Placement Officer", email: "placements", location: "Placement Cell",
+    name: "Placement Cell", designation: "Training & Placement Officer", email: "placements", lCode: "L9105", maxDurationMin: 90, location: "Placement Cell",
     slotDurationMin: 30, bufferMin: 0, capacityPerSlot: 1, minNoticeMin: 120, advanceBookingDays: 30, allowSameDay: true,
     bio: "Placement registration, internships, career guidance and recruiter meetings.",
   },
   {
     department: "Hostel Administration", description: "Hostel allotment, rooms, mess, leave",
-    name: "Hostel Office", designation: "Chief Warden", email: "hostel", location: "Hostel Administration Office",
+    name: "Hostel Office", designation: "Chief Warden", email: "hostel", lCode: "L9106", maxDurationMin: 45, location: "Hostel Administration Office",
     slotDurationMin: 15, bufferMin: 5, capacityPerSlot: 1, minNoticeMin: 60, advanceBookingDays: 30, allowSameDay: true,
     bio: "Hostel allotment, room change, mess and hostel-leave matters.",
   },
   {
     department: "Student Welfare", description: "Student grievances, clubs, discipline, wellbeing",
-    name: "Student Welfare Office", designation: "Dean Student Welfare", email: "dsw", location: "Student Activity Centre",
+    name: "Student Welfare Office", designation: "Dean Student Welfare", email: "dsw", lCode: "L9107", maxDurationMin: 60, location: "Student Activity Centre",
     slotDurationMin: 20, bufferMin: 10, capacityPerSlot: 1, minNoticeMin: 60, advanceBookingDays: 30, allowSameDay: true,
     bio: "Student grievances, clubs and societies, discipline and student wellbeing.",
   },
   {
     department: "Office of the Campus Director", description: "Meetings with the Campus Director (by appointment only)",
-    name: "Director's Office", designation: "Campus Director", email: "director", location: "Administrative Block, First Floor", canSummon: true,
+    name: "Director's Office", designation: "Campus Director", email: "director", lCode: "L9108", maxDurationMin: 60, requiresApproval: true, location: "Administrative Block, First Floor", canSummon: true,
     slotDurationMin: 30, bufferMin: 15, capacityPerSlot: 1, minNoticeMin: 1440, advanceBookingDays: 14, allowSameDay: false, maxPerDay: 4,
     hours: { weekdays: [1, 2, 3, 4, 5], startTime: "11:00", endTime: "13:00", breakStart: null, breakEnd: null },
     bio: "Meetings with the Campus Director. Book at least one day in advance.",
@@ -114,15 +121,15 @@ const DESKS: Desk[] = [
  * Admin → Staff → "Bulk import staff (CSV)", then deactivate these.
  */
 const SAMPLE_STAFF = [
-  { name: "Test Faculty (CSE)", email: "faculty.cse", employeeId: "TEST-001", jobTitle: "Assistant Professor", department: "Computer Science & Engineering" },
-  { name: "Test Faculty (Management)", email: "faculty.mgmt", employeeId: "TEST-002", jobTitle: "Associate Professor", department: "Management Studies" },
-  { name: "Test Staff (Library)", email: "library", employeeId: "TEST-003", jobTitle: "Librarian", department: "Central Library" },
+  { name: "Test Faculty (CSE)", email: "faculty.cse", employeeId: "L9201", jobTitle: "Assistant Professor", department: "Computer Science & Engineering" },
+  { name: "Test Faculty (Management)", email: "faculty.mgmt", employeeId: "L9202", jobTitle: "Associate Professor", department: "Management Studies" },
+  { name: "Test Staff (Library)", email: "library", employeeId: "L9203", jobTitle: "Librarian", department: "Central Library" },
 ];
 
 const STAFF = [
-  { name: "Campus IT Admin", email: "admin", role: "ADMIN" as const },
-  { name: "Front Office", email: "frontoffice", role: "RECEPTIONIST" as const },
-  { name: "Main Gate Reception", email: "reception", role: "RECEPTIONIST" as const },
+  { name: "Campus IT Admin", email: "admin", role: "ADMIN" as const, lCode: "L9001" },
+  { name: "Front Office", email: "frontoffice", role: "RECEPTIONIST" as const, lCode: "L9002" },
+  { name: "Main Gate Reception", email: "reception", role: "RECEPTIONIST" as const, lCode: "L9003" },
 ];
 
 /** Fixed-date national holidays. TODO: add the campus academic calendar (Diwali, Holi, Eid, etc.) from Admin → Holidays. */
@@ -152,7 +159,7 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
   });
 
   await prisma.user.createMany({
-    data: STAFF.map((s) => ({ organizationId: org.id, name: s.name, email: email(s.email), passwordHash: hash, role: s.role })),
+    data: STAFF.map((s) => ({ organizationId: org.id, name: s.name, email: email(s.email), passwordHash: hash, role: s.role, employeeId: s.lCode })),
   });
 
   for (const d of DESKS) {
@@ -162,13 +169,15 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
       : [...[1, 2, 3, 4, 5].map((weekday) => ({ weekday, ...WEEKDAY_HOURS })), { weekday: 6, ...SATURDAY_HOURS }];
     await prisma.user.create({
       data: {
-        organizationId: org.id, name: d.name, email: email(d.email), passwordHash: hash, role: "OFFICER",
+        organizationId: org.id, name: d.name, email: email(d.email), passwordHash: hash, role: "OFFICER", employeeId: d.lCode,
         officerProfile: {
           create: {
             organizationId: org.id, departmentId: dept.id, designation: d.designation, location: d.location, bio: d.bio,
             slotDurationMin: d.slotDurationMin, bufferMin: d.bufferMin, capacityPerSlot: d.capacityPerSlot,
             minNoticeMin: d.minNoticeMin, advanceBookingDays: d.advanceBookingDays, allowSameDay: d.allowSameDay, maxPerDay: d.maxPerDay ?? null,
             canSummon: d.canSummon ?? false,
+            requiresApproval: d.requiresApproval ?? false,
+            maxDurationMin: d.maxDurationMin,
             workingHours: { create: hours },
           },
         },
@@ -185,8 +194,8 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
 
   console.log(`Created "${ORG.name}" — booking portal /o/${ORG.slug}, token prefix ${ORG.shortCode}`);
   console.log(`${DESKS.length} departments/desks, ${STAFF.length} staff accounts, ${HOLIDAYS.length} holidays.`);
-  console.log(`Logins (initial password: ${password}):`);
-  for (const s of STAFF) console.log(`  ${s.role.padEnd(13)} ${email(s.email)}`);
-  for (const d of DESKS) console.log(`  OFFICER       ${email(d.email).padEnd(28)} ${d.designation}${d.canSummon ? "  (can call immediate meetings)" : ""}`);
+  console.log(`Logins (initial password: ${password} — everyone must change it at first sign-in):`);
+  for (const s of STAFF) console.log(`  ${s.role.padEnd(13)} ${email(s.email).padEnd(28)} L Code ${s.lCode}`);
+  for (const d of DESKS) console.log(`  OFFICER       ${email(d.email).padEnd(28)} ${d.designation}${d.canSummon ? "  (can call immediate meetings)" : ""}${d.requiresApproval ? "  (approves bookings)" : ""}`);
   for (const st of SAMPLE_STAFF) console.log(`  STAFF         ${email(st.email).padEnd(28)} ${st.jobTitle} (sample)`);
 }

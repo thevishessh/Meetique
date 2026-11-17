@@ -53,6 +53,10 @@ export type SessionUser = {
   officerId: string | null;
   /** Designated officer who may call immediate meetings */
   canSummon: boolean;
+  /** L Code (employee code) */
+  employeeId: string | null;
+  /** Must set a new password before using the app */
+  mustChangePassword: boolean;
   org: { id: string; name: string; slug: string; timezone: string; shortCode: string };
 };
 
@@ -79,6 +83,8 @@ export async function getUser(): Promise<SessionUser | null> {
       organizationId: u.organizationId,
       officerId: u.officerProfile?.id ?? null,
       canSummon: !!u.officerProfile?.canSummon,
+      employeeId: u.employeeId,
+      mustChangePassword: u.mustChangePassword,
       org: u.organization,
     };
   } catch {
@@ -86,10 +92,11 @@ export async function getUser(): Promise<SessionUser | null> {
   }
 }
 
-/** For API routes: throws 401/403 */
+/** For API routes: throws 401/403. Blocks everything until a required password change is done. */
 export async function requireApiUser(...roles: Role[]): Promise<SessionUser> {
   const u = await getUser();
   if (!u) throw new AppError("UNAUTHORIZED", "Please sign in", 401);
+  if (u.mustChangePassword) throw new AppError("PASSWORD_CHANGE_REQUIRED", "Please set a new password first", 403);
   if (roles.length && !roles.includes(u.role)) throw new AppError("FORBIDDEN", "You do not have access to this action", 403);
   return u;
 }
@@ -98,6 +105,7 @@ export async function requireApiUser(...roles: Role[]): Promise<SessionUser> {
 export async function requirePageUser(...roles: Role[]): Promise<SessionUser> {
   const u = await getUser();
   if (!u) redirect("/login");
+  if (u.mustChangePassword) redirect("/change-password");
   if (roles.length && !roles.includes(u.role)) redirect(homeFor(u.role));
   return u;
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { hashPassword, requireApiUser } from "@/lib/auth";
 import { handle, ok, readJson } from "@/lib/api";
-import { staffImportSchema } from "@/lib/validation";
+import { lCode, staffImportSchema } from "@/lib/validation";
 
 /** Minimal CSV line parser (handles quoted values with commas) */
 function parseLine(line: string): string[] {
@@ -23,7 +23,7 @@ function parseLine(line: string): string[] {
 
 /**
  * POST /api/staff/import { csv, password }
- * Each line: name,email,employeeId,department,jobTitle,phone  (header line optional)
+ * Each line: name,email,lCode,department,jobTitle,phone  (header line optional). L Code is compulsory.
  * Unknown departments are created. Existing emails are skipped. All get role STAFF + the given initial password.
  */
 export const POST = handle(async (req: Request) => {
@@ -38,12 +38,15 @@ export const POST = handle(async (req: Request) => {
   const skipped: { line: number; reason: string }[] = [];
 
   for (const [i, line] of lines.entries()) {
-    const [name, emailRaw, employeeId, dept, jobTitle, phone] = parseLine(line);
+    const [name, emailRaw, codeRaw, dept, jobTitle, phone] = parseLine(line);
     const email = (emailRaw ?? "").toLowerCase();
     if (!name || name.length < 2 || !/^\S+@\S+\.\S+$/.test(email)) { skipped.push({ line: i + 1, reason: "name and a valid email are required" }); continue; }
+    const code = lCode.safeParse(codeRaw ?? "");
+    if (!code.success) { skipped.push({ line: i + 1, reason: codeRaw ? `invalid L Code "${codeRaw}"` : "L Code is missing" }); continue; }
+    const employeeId = code.data;
     if (await prisma.user.findUnique({ where: { email } })) { skipped.push({ line: i + 1, reason: `${email} already exists` }); continue; }
     if (employeeId && (await prisma.user.findFirst({ where: { organizationId: admin.organizationId, employeeId } }))) {
-      skipped.push({ line: i + 1, reason: `employee ID ${employeeId} already used` });
+      skipped.push({ line: i + 1, reason: `L Code ${employeeId} already used` });
       continue;
     }
     let departmentId: string | null = null;

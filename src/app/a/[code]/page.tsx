@@ -6,6 +6,7 @@ import { fmtLongDate, fmtRange, fmtDateTime, todayIn, localDateOf } from "@/lib/
 import { Alert, Card, Logo, StatusBadge } from "@/components/ui";
 import ManageActions from "./manage-actions";
 import { PUBLIC_BOOKING } from "@/lib/config";
+import { INVALID_FOR_ENTRY } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Appointment token", robots: { index: false } };
@@ -26,9 +27,9 @@ export default async function AppointmentSlip({ params, searchParams }: { params
   if (!a) notFound();
   const tz = a.organization.timezone;
   const token = a.tokens[0];
-  const active = token?.isActive && !["CANCELLED", "NO_SHOW"].includes(a.status);
+  const active = token?.isActive && !INVALID_FOR_ENTRY.includes(a.status);
   const qr = active && token ? await qrDataUrl(token.qrSecret) : null;
-  const canChange = a.status === "BOOKED" && a.startAt > new Date() && a.kind !== "IMMEDIATE";
+  const canChange = (a.status === "BOOKED" || a.status === "PENDING") && a.startAt > new Date() && a.kind !== "IMMEDIATE";
 
   const rows: [string, string][] = [
     ...(a.kind === "IMMEDIATE" ? ([["Type", `Immediate meeting — called by ${a.requestedBy?.name ?? "officer"}`]] as [string, string][]) : []),
@@ -82,7 +83,7 @@ export default async function AppointmentSlip({ params, searchParams }: { params
                   <span className="mt-2 text-xs font-medium text-emerald-700">✓ Valid Appointment</span>
                 </>
               ) : (
-                <div className="grid h-40 w-40 place-items-center rounded-lg bg-slate-100 text-center text-xs text-slate-500">Token no longer valid</div>
+                <div className="grid h-40 w-40 place-items-center rounded-lg bg-slate-100 p-3 text-center text-xs text-slate-500">{a.status === "PENDING" ? "QR appears here once the officer approves" : "Token no longer valid"}</div>
               )}
             </div>
           </div>

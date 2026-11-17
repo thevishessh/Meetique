@@ -42,7 +42,7 @@ export default async function SummonPage() {
   return (
     <div className="space-y-6">
       <AutoRefresh seconds={15} />
-      <PageHeader title="Call an immediate meeting" description="Pick anyone in the university. They get an urgent alert on their screen and must acknowledge it. Working hours and slot rules don't apply." />
+      <PageHeader title="Call an immediate meeting" description="Pick one or more people. They get an urgent alert on their screen and phone and must acknowledge it. Working hours and slot rules don't apply." />
       <SummonForm people={list} defaultDuration={me.slotDurationMin} today={todayIn(tz)} location={me.location} />
       <Card>
         <CardHeader title="Meetings you called" description="Live: see who has acknowledged" />

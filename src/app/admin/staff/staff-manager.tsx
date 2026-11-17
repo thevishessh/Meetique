@@ -34,13 +34,13 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
   return (
     <div>
       {msg && <div className="px-5 pt-4"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
-      <div className="px-5 pt-4"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, employee ID, department…" className="max-w-md" /></div>
+      <div className="px-5 pt-4"><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, L Code, department…" className="max-w-md" /></div>
       <ul className="mt-2 max-h-[32rem] divide-y divide-slate-100 overflow-y-auto">
         {shown.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
             <div className="min-w-0">
               <div className="font-medium">{s.name} {s.id === me && <span className="text-xs text-slate-400">(you)</span>}</div>
-              <div className="text-xs text-slate-500">{[s.email, s.jobTitle, s.department?.name, s.employeeId && `ID ${s.employeeId}`].filter(Boolean).join(" · ")}</div>
+              <div className="text-xs text-slate-500">{[s.email, s.jobTitle, s.department?.name, s.employeeId ? `L Code ${s.employeeId}` : "⚠ no L Code"].filter(Boolean).join(" · ")}</div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={ROLE[s.role].tone}>{ROLE[s.role].label}</Badge>
@@ -76,9 +76,9 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
         <Field label="Name"><Input name="name" required /></Field>
         <Field label="Email"><Input name="email" type="email" required /></Field>
         <Field label="Temporary password"><Input name="password" required minLength={8} /></Field>
+        <Field label="L Code" hint="Compulsory"><Input name="employeeId" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="L12345" className="uppercase" /></Field>
         {role === "STAFF" && (
           <>
-            <Field label="Employee ID"><Input name="employeeId" /></Field>
             <Field label="Designation"><Input name="jobTitle" placeholder="Assistant Professor" /></Field>
             <Field label="Department">
               <Select name="departmentId" defaultValue="">
@@ -125,7 +125,7 @@ export function StaffImport() {
           {!!res.skipped?.length && <ul className="mt-1 list-disc pl-5 text-xs">{res.skipped.slice(0, 20).map((s) => <li key={s.line}>Line {s.line}: {s.reason}</li>)}</ul>}
         </Alert>
       )}
-      <Textarea name="csv" rows={6} required className="font-mono text-xs" placeholder={"name,email,employeeId,department,designation,phone\nDr. Asha Rao,asha.rao@campus.edu,CU1023,Computer Science,Assistant Professor,9876500001"} />
+      <Textarea name="csv" rows={6} required className="font-mono text-xs" placeholder={"name,email,lCode,department,designation,phone\nDr. Asha Rao,asha.rao@campus.edu,L10234,Computer Science,Assistant Professor,9876500001"} />
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Initial password for everyone"><Input name="password" required minLength={8} className="w-56" /></Field>
         <Button disabled={busy}>{busy ? "Importing…" : "Import staff"}</Button>

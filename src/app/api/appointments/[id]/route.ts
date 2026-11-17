@@ -5,6 +5,7 @@ import { fail, handle, ok, readJson } from "@/lib/api";
 import { rescheduleSchema } from "@/lib/validation";
 import { rescheduleAppointment } from "@/lib/booking";
 import { notifyAppointment } from "@/lib/notify";
+import { meetingEvent } from "@/lib/alerts";
 import { AppError } from "@/lib/errors";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -43,5 +44,6 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   if (actor && actor.role === "RECEPTIONIST") return fail(403, "FORBIDDEN", "Receptionists cannot reschedule");
   const updated = await rescheduleAppointment(a.id, body.startAt, actor);
   void notifyAppointment(a.id, "RESCHEDULED");
+  void meetingEvent(a.id, "RESCHEDULED", actor?.id ?? a.visitor.userId);
   return ok({ id: updated.id, startAt: updated.startAt, endAt: updated.endAt });
 });

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** University employee code ("L Code"), e.g. L12345 — stored in users.employee_id */
+export const lCode = z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9-]{1,19}$/, "Enter a valid L Code (letters/numbers, e.g. L12345)");
+
 const hm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm");
 const phone = z.string().trim().min(7, "Enter a valid mobile number").max(20).regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid mobile number");
 const optEmail = z.union([z.literal(""), z.string().trim().email("Enter a valid email")]).optional().nullable();
@@ -41,10 +44,15 @@ export const officerSettingsSchema = z.object({
   minNoticeMin: z.coerce.number().int().min(0).max(10080),
   allowSameDay: z.boolean(),
   isBookable: z.boolean(),
+  /** Longest meeting a staff member may book */
+  maxDurationMin: z.coerce.number().int().min(5).max(480),
+  /** Bookings wait for the officer's approval */
+  requiresApproval: z.boolean(),
 });
 
 export const officerCreateSchema = z.object({
   name: z.string().trim().min(2).max(80),
+  employeeId: lCode,
   email: z.string().trim().toLowerCase().email(),
   phone: z.string().trim().max(20).optional().nullable(),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -62,6 +70,7 @@ export const officerUpdateSchema = z.object({
   bio: z.string().trim().max(500).optional().nullable(),
   isActive: z.boolean().optional(),
   canSummon: z.boolean().optional(),
+  employeeId: lCode.optional(),
 }).merge(officerSettingsSchema.partial());
 
 const optText = (max: number) => z.string().trim().max(max).optional().nullable().transform((v) => v || null);
@@ -71,7 +80,7 @@ export const staffCreateSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["ADMIN", "RECEPTIONIST", "STAFF"]),
-  employeeId: optText(40),
+  employeeId: lCode,
   jobTitle: optText(80),
   phone: optText(20),
   departmentId: optText(40),
@@ -81,7 +90,7 @@ export const staffCreateSchema = z.object({
 export const staffImportSchema = z.object({ csv: z.string().min(3).max(500_000), password: z.string().min(8, "Initial password must be at least 8 characters") });
 
 export const staffUpdateSchema = z.object({
-  employeeId: optText(40),
+  employeeId: lCode.optional(),
   jobTitle: optText(80),
   phone: optText(20),
   departmentId: optText(40),
@@ -125,12 +134,16 @@ export const bookingSchema = z.object({
   visitorCategory: z.string().trim().max(60).optional().nullable(),
   referenceNo: z.string().trim().max(60).optional().nullable(),
   walkIn: z.boolean().optional(),
+  /** Meeting length in minutes (default: the officer's slot length) */
+  durationMin: z.coerce.number().int().min(5).max(480).optional(),
+  /** L Code — required for walk-ins, and for staff whose profile has none yet */
+  lCode: lCode.optional(),
 });
 
 export const rescheduleSchema = z.object({ code: z.string().optional(), startAt: z.string().min(1) });
 
 export const statusSchema = z.object({
-  status: z.enum(["CHECKED_IN", "WAITING", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"]),
+  status: z.enum(["BOOKED", "DECLINED", "CHECKED_IN", "WAITING", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"]),
   note: z.string().trim().max(300).optional(),
 });
 
@@ -138,9 +151,19 @@ export const checkInSchema = z.object({ scan: z.string().trim().min(3) });
 
 export const lookupSchema = z.object({ org: z.string().min(1), token: z.string().trim().min(3), phone });
 
+/** At least 8 characters with a letter and a number */
+export const strongPassword = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Za-z]/, "Password must contain a letter")
+  .regex(/\d/, "Password must contain a number");
+
+export const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email() });
+export const resetSchema = z.object({ token: z.string().min(20), password: strongPassword });
+
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use yyyy-MM-dd");
 export const holidaySchema = z.object({ date: ymd, endDate: z.union([ymd, z.literal("")]).optional().nullable(), name: z.string().trim().min(2).max(80) });
 
 export const passwordChangeSchema = z
-  .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8, "New password must be at least 8 characters") })
+  .object({ currentPassword: z.string().min(1), newPassword: strongPassword })
   .refine((d) => d.currentPassword !== d.newPassword, { message: "New password must be different", path: ["newPassword"] });

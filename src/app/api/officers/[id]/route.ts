@@ -16,10 +16,14 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   if (d.departmentId && !(await prisma.department.findFirst({ where: { id: d.departmentId, organizationId: user.organizationId } }))) {
     return fail(422, "VALIDATION", "Unknown department");
   }
-  const { name, phone, isActive, ...profile } = d;
+  if (d.employeeId && (await prisma.user.findFirst({ where: { organizationId: user.organizationId, employeeId: d.employeeId, NOT: { id: officer.userId } } }))) {
+    return fail(409, "L_CODE_TAKEN", "Another account already has this L Code");
+  }
+  const { name, phone, isActive, employeeId, ...profile } = d;
+  if (profile.maxDurationMin !== undefined) profile.maxDurationMin = Math.max(profile.maxDurationMin, profile.slotDurationMin ?? officer.slotDurationMin);
   await prisma.$transaction([
     prisma.officerProfile.update({ where: { id: officer.id }, data: { ...profile, departmentId: d.departmentId === undefined ? undefined : d.departmentId || null } }),
-    prisma.user.update({ where: { id: officer.userId }, data: { name, phone, isActive } }),
+    prisma.user.update({ where: { id: officer.userId }, data: { name, phone, isActive, employeeId } }),
   ]);
   return ok({ ok: true });
 });

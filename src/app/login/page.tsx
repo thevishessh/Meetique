@@ -23,7 +23,7 @@ export default async function LoginPage() {
           New organization? <Link className="font-medium text-brand-600 hover:underline" href="/register">Register here</Link>
         </p>
       ) : !PUBLIC_BOOKING ? (
-        <p className="mt-6 text-sm text-slate-500">Forgot your password? Ask the campus IT admin to reset it.</p>
+        <p className="mt-6 text-sm text-slate-500"><Link className="font-medium text-brand-600 hover:underline" href="/forgot-password">Forgot password?</Link></p>
       ) : (
         <p className="mt-6 text-sm text-slate-500"><Link className="font-medium text-brand-600 hover:underline" href="/">← Back to appointment booking</Link></p>
       )}

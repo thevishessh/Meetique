@@ -22,6 +22,10 @@ export type DaySlots = {
   date: string;
   timezone: string;
   status: "OPEN" | "OFF" | "BLOCKED" | "OUT_OF_RANGE" | "NOT_BOOKABLE";
+  /** Meeting length these slots were calculated for */
+  durationMin: number;
+  /** Meeting lengths a booker can choose (multiples of the officer's slot length) */
+  durations: number[];
   message?: string;
   breaks: { start: string; end: string; label: string }[];
   slots: Slot[];
@@ -33,7 +37,16 @@ export type SlotOptions = {
   staffOverride?: boolean;
   /** Don't count this appointment (used when rescheduling it) */
   ignoreAppointmentId?: string;
+  /** Requested meeting length; defaults to the officer's slot length */
+  durationMin?: number;
 };
+
+/** Lengths a visitor may choose: slot, 2×slot, … up to the officer's maximum */
+export function allowedDurations(slotMin: number, maxMin: number): number[] {
+  const out: number[] = [];
+  for (let d = slotMin; d <= Math.max(slotMin, maxMin); d += slotMin) out.push(d);
+  return out;
+}
 
 type Window = { start: DateTime; end: DateTime };
 
@@ -52,7 +65,9 @@ export async function getDaySlots(officerId: string, date: string, opts: SlotOpt
   const now = DateTime.fromJSDate(opts.now ?? new Date()).setZone(tz);
   const day = DateTime.fromISO(date, { zone: tz }).startOf("day");
   const dayEnd = day.plus({ days: 1 });
-  const base: DaySlots = { date, timezone: tz, status: "OPEN", breaks: [], slots: [] };
+  const durations = allowedDurations(officer.slotDurationMin, officer.maxDurationMin);
+  const dur = opts.durationMin && (durations.includes(opts.durationMin) || opts.staffOverride) ? opts.durationMin : officer.slotDurationMin;
+  const base: DaySlots = { date, timezone: tz, status: "OPEN", durationMin: dur, durations, breaks: [], slots: [] };
 
   if (!officer.isBookable || !officer.user.isActive) {
     if (!opts.staffOverride) return { ...base, status: "NOT_BOOKABLE", message: "This officer is not accepting appointments right now." };
@@ -106,13 +121,13 @@ export async function getDaySlots(officerId: string, date: string, opts: SlotOpt
 
   if (!windows.length) return { ...base, status: "OFF", message: "The officer is not available on this day." };
 
-  // 2. Generate slots: duration + buffer
+  // 2. Candidate start times on the officer's slot grid; the meeting (dur) must fit inside a window
   const unavailable = blocks
     .filter((b) => b.kind === "UNAVAILABLE")
     .map((b) => ({ start: DateTime.fromJSDate(b.startAt), end: DateTime.fromJSDate(b.endAt), reason: b.reason }));
 
-  const dur = officer.slotDurationMin;
-  const step = officer.slotDurationMin + officer.bufferMin;
+  const step = officer.slotDurationMin;
+  const buffer = officer.bufferMin;
   const raw: Window[] = [];
   for (const w of windows) {
     for (let c = w.start; c.plus({ minutes: dur }) <= w.end; c = c.plus({ minutes: step })) {
@@ -142,9 +157,12 @@ export async function getDaySlots(officerId: string, date: string, opts: SlotOpt
   const dayLimitHit = officer.maxPerDay != null && dayCount >= officer.maxPerDay;
   const minStart = opts.staffOverride ? now : now.plus({ minutes: officer.minNoticeMin });
   const isToday = day.hasSame(now, "day");
+  const bufMs = buffer * 60_000;
 
   base.slots = raw.map(({ start, end }) => {
-    const booked = appts.filter((a) => a.startAt < end.toJSDate() && a.endAt > start.toJSDate()).length;
+    // Overlap check keeps a buffer gap after every meeting (existing ones and the new one)
+    const s = start.toMillis(), e = end.toMillis();
+    const booked = appts.filter((a) => s < a.endAt.getTime() + bufMs && a.startAt.getTime() < e + bufMs).length;
     let reason: SlotReason | undefined;
     if (opts.staffOverride ? end <= now : start < now) reason = "PAST";
     else if (!opts.staffOverride && isToday && !officer.allowSameDay) reason = "SAME_DAY";
@@ -168,12 +186,12 @@ export async function getDaySlots(officerId: string, date: string, opts: SlotOpt
 }
 
 /** Next N days that have at least one open slot (for the visitor date picker) */
-export async function getOpenDays(officerId: string, from: string, days: number): Promise<{ date: string; open: number }[]> {
+export async function getOpenDays(officerId: string, from: string, days: number, durationMin?: number): Promise<{ date: string; open: number }[]> {
   const out: { date: string; open: number }[] = [];
   const start = DateTime.fromISO(from);
   for (let i = 0; i < days; i++) {
     const date = start.plus({ days: i }).toFormat(DATE_FMT);
-    const d = await getDaySlots(officerId, date);
+    const d = await getDaySlots(officerId, date, { durationMin });
     out.push({ date, open: d.slots.filter((s) => s.available).length });
   }
   return out;

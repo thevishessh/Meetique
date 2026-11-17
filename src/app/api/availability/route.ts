@@ -39,7 +39,9 @@ export const POST = handle(async (req: Request) => {
         .filter((x) => x.enabled)
         .map((x) => ({ officerId: officer.id, weekday: x.weekday, startTime: x.startTime, endTime: x.endTime, breakStart: x.breakStart || null, breakEnd: x.breakEnd || null })),
     }),
-    ...(d.settings ? [prisma.officerProfile.update({ where: { id: officer.id }, data: { ...d.settings, maxPerDay: d.settings.maxPerDay ?? null } })] : []),
+    ...(d.settings
+      ? [prisma.officerProfile.update({ where: { id: officer.id }, data: { ...d.settings, maxPerDay: d.settings.maxPerDay ?? null, maxDurationMin: Math.max(d.settings.maxDurationMin, d.settings.slotDurationMin) } })]
+      : []),
   ]);
   return ok({ ok: true });
 });

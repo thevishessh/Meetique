@@ -37,6 +37,7 @@ export const POST = handle(async (req: Request) => {
   const admin = await requireApiUser("ADMIN");
   const d = officerCreateSchema.parse(await readJson(req));
   if (await prisma.user.findUnique({ where: { email: d.email } })) return fail(409, "EMAIL_TAKEN", "An account with this email already exists");
+  if (await prisma.user.findFirst({ where: { organizationId: admin.organizationId, employeeId: d.employeeId } })) return fail(409, "L_CODE_TAKEN", "Another account already has this L Code");
   if (d.departmentId && !(await prisma.department.findFirst({ where: { id: d.departmentId, organizationId: admin.organizationId } }))) {
     return fail(422, "VALIDATION", "Unknown department");
   }
@@ -45,6 +46,7 @@ export const POST = handle(async (req: Request) => {
       organizationId: admin.organizationId,
       name: d.name,
       email: d.email,
+      employeeId: d.employeeId,
       phone: d.phone || null,
       passwordHash: await hashPassword(d.password),
       role: "OFFICER",

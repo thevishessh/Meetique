@@ -3,7 +3,7 @@ import { fail, handle, ok } from "@/lib/api";
 import { findToken } from "@/lib/booking";
 import { parseScan } from "@/lib/tokens";
 import { fmtLongDate, fmtRange } from "@/lib/time";
-import { STATUS_LABEL } from "@/lib/status";
+import { INVALID_FOR_ENTRY, STATUS_LABEL } from "@/lib/status";
 
 const mask = (name: string) => name.split(" ").map((p) => (p.length <= 1 ? p : p[0] + "*".repeat(Math.min(p.length - 1, 4)))).join(" ");
 
@@ -20,7 +20,7 @@ export const GET = handle(async (_req: Request, { params }: { params: Promise<{ 
   if (!isStaff && !parseScan(raw).qrSecret) return fail(404, "INVALID_TOKEN", "Token not found"); // token numbers are guessable: staff only
 
   return ok({
-    valid: t.isActive && !["CANCELLED", "NO_SHOW"].includes(a.status),
+    valid: t.isActive && !INVALID_FOR_ENTRY.includes(a.status),
     tokenNumber: t.tokenNumber,
     status: a.status,
     statusLabel: STATUS_LABEL[a.status],

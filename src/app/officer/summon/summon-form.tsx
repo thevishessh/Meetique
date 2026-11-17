@@ -1,26 +1,50 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/components/client-api";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 
 export type Person = { id: string; name: string; title: string; department: string | null; employeeId: string | null };
+type Busy = { userId: string; name: string; items: string[] };
+
+const DURATIONS = [10, 15, 20, 30, 45, 60, 90, 120];
 
 export function SummonForm({ people, defaultDuration, today, location }: { people: Person[]; defaultDuration: number; today: string; location: string | null }) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [pick, setPick] = useState<Person | null>(null);
+  const [picked, setPicked] = useState<Person[]>([]);
   const [mode, setMode] = useState<"now" | "later">("now");
   const [date, setDate] = useState(today);
   const [time, setTime] = useState("");
+  const [duration, setDuration] = useState(DURATIONS.includes(defaultDuration) ? defaultDuration : 30);
+  const [busy, setBusyList] = useState<Busy[]>([]);
   const [msg, setMsg] = useState<{ tone: "green" | "rose" | "amber"; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
     const list = s ? people.filter((p) => [p.name, p.title, p.department, p.employeeId].some((v) => v?.toLowerCase().includes(s))) : people;
-    return list.slice(0, 40);
+    return list.slice(0, 50);
   }, [q, people]);
+
+  const when = mode === "now" ? "now" : time ? `${date}T${time}` : "";
+  const ids = picked.map((p) => p.id).join(",");
+
+  // Live "is anyone busy then?" check
+  useEffect(() => {
+    if (!ids || !when) return setBusyList([]);
+    const t = setTimeout(async () => {
+      try {
+        const r = await api<{ busy: Busy[] }>(`/api/summons/conflicts?${new URLSearchParams({ ids, when, duration: String(duration) })}`);
+        setBusyList(r.busy);
+      } catch {
+        setBusyList([]);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [ids, when, duration]);
+
+  const toggle = (p: Person) => setPicked((list) => (list.some((x) => x.id === p.id) ? list.filter((x) => x.id !== p.id) : [...list, p]));
 
   return (
     <Card>
@@ -29,58 +53,73 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
         className="grid gap-5 p-5 lg:grid-cols-2"
         onSubmit={async (e) => {
           e.preventDefault();
-          if (!pick) return setMsg({ tone: "rose", text: "Choose who you want to call" });
-          if (mode === "later" && !time) return setMsg({ tone: "rose", text: "Pick a time" });
+          if (!picked.length) return setMsg({ tone: "rose", text: "Choose who you want to call" });
+          if (!when) return setMsg({ tone: "rose", text: "Pick a time" });
+          if (busy.length && !confirm(`${busy.map((b) => b.name).join(", ")} ${busy.length === 1 ? "is" : "are"} already busy at that time. Call anyway?`)) return;
           const f = new FormData(e.currentTarget);
-          setBusy(true);
+          setSending(true);
           setMsg(null);
           try {
-            const r = await api<{ tokenNumber: string; overlaps: number; attendee: string }>("/api/summons", {
-              body: { targetUserId: pick.id, when: mode === "now" ? "now" : `${date}T${time}`, durationMin: Number(f.get("durationMin")), purpose: f.get("purpose") },
+            const r = await api<{ created: number; tokens: string[]; attendees: string[]; overlaps: number }>("/api/summons", {
+              body: { targetUserIds: picked.map((p) => p.id), when, durationMin: duration, purpose: f.get("purpose") },
             });
             setMsg({
               tone: r.overlaps ? "amber" : "green",
-              text: `${r.attendee} has been alerted (token ${r.tokenNumber}).${r.overlaps ? ` Note: this overlaps ${r.overlaps} meeting(s) already in your queue.` : ""}`,
+              text: `${r.attendees.join(", ")} ${r.created === 1 ? "has" : "have"} been alerted on their screen and phone.${r.overlaps ? ` Note: this overlaps ${r.overlaps} meeting(s) already in your queue.` : ""}`,
             });
-            setPick(null);
+            setPicked([]);
             setQ("");
             (e.target as HTMLFormElement).reset();
             router.refresh();
           } catch (err) {
             setMsg({ tone: "rose", text: (err as Error).message });
           } finally {
-            setBusy(false);
+            setSending(false);
           }
         }}
       >
         {msg && <div className="lg:col-span-2"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
 
         <div>
-          <Field label="Who do you want to meet?">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, designation, department or employee ID" />
+          <Field label="Who do you want to meet? (select one or more)">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, designation, department or L Code" />
           </Field>
-          <ul className="mt-2 max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg ring-1 ring-slate-200">
-            {matches.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => setPick(p)}
-                  className={cx("flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm", pick?.id === p.id ? "bg-brand-50" : "hover:bg-slate-50")}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium text-slate-900">{p.name}</span>
-                    <span className="block truncate text-xs text-slate-500">{[p.title, p.department, p.employeeId && `ID ${p.employeeId}`].filter(Boolean).join(" · ")}</span>
-                  </span>
-                  {pick?.id === p.id && <span className="text-xs font-semibold text-brand-700">Selected ✓</span>}
-                </button>
-              </li>
-            ))}
+          <ul className="mt-2 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg ring-1 ring-slate-200">
+            {matches.map((p) => {
+              const on = picked.some((x) => x.id === p.id);
+              return (
+                <li key={p.id}>
+                  <button type="button" onClick={() => toggle(p)} className={cx("flex w-full items-center gap-3 px-3 py-2 text-left text-sm", on ? "bg-brand-50" : "hover:bg-slate-50")}>
+                    <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded border text-[10px]", on ? "border-brand-600 bg-brand-600 text-white" : "border-slate-300")}>{on ? "✓" : ""}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-slate-900">{p.name}</span>
+                      <span className="block truncate text-xs text-slate-500">{[p.title, p.department, p.employeeId && `L Code ${p.employeeId}`].filter(Boolean).join(" · ")}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
             {!matches.length && <li className="px-3 py-4 text-center text-sm text-slate-500">No one matches “{q}”</li>}
           </ul>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">{pick ? <>Calling <b>{pick.name}</b> — {pick.title}</> : <span className="text-slate-500">Nobody selected yet</span>}</div>
+          <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm">
+            {picked.length ? (
+              <>
+                <div className="mb-1 font-medium">Calling {picked.length} {picked.length === 1 ? "person" : "people"}:</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {picked.map((p) => (
+                    <button type="button" key={p.id} onClick={() => toggle(p)} className="rounded-full bg-white px-2.5 py-1 text-xs ring-1 ring-slate-300 hover:ring-rose-300" title="Remove">
+                      {p.name} ✕
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <span className="text-slate-500">Nobody selected yet</span>
+            )}
+          </div>
           <div>
             <span className="mb-1.5 block text-sm font-medium text-slate-700">When</span>
             <div className="flex gap-2">
@@ -95,12 +134,23 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
             )}
           </div>
           <Field label="Duration">
-            <Select name="durationMin" defaultValue={[10, 15, 20, 30, 45, 60, 90, 120].includes(defaultDuration) ? defaultDuration : 30}>
-              {[10, 15, 20, 30, 45, 60, 90, 120].map((m) => <option key={m} value={m}>{m} minutes</option>)}
+            <Select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+              {DURATIONS.map((m) => <option key={m} value={m}>{m} minutes</option>)}
             </Select>
           </Field>
+          {busy.length > 0 && (
+            <Alert tone="amber">
+              <b>Already busy at that time:</b>
+              <ul className="mt-1 list-disc pl-5 text-xs">
+                {busy.map((b) => <li key={b.userId}><b>{b.name}</b>: {b.items.join("; ")}</li>)}
+              </ul>
+              <span className="text-xs">You can still call them; the alert says it's urgent.</span>
+            </Alert>
+          )}
           <Field label="Purpose"><Textarea name="purpose" rows={3} required minLength={2} maxLength={300} placeholder="e.g. Urgent: NAAC documentation review" /></Field>
-          <Button variant="danger" size="lg" className="w-full !bg-rose-600 !text-white hover:!bg-rose-700" disabled={busy || !pick}>{busy ? "Calling…" : "Call meeting now"}</Button>
+          <Button size="lg" className="w-full !bg-rose-600 !text-white hover:!bg-rose-700" disabled={sending || !picked.length}>
+            {sending ? "Calling…" : picked.length > 1 ? `Call ${picked.length} people now` : "Call meeting now"}
+          </Button>
         </div>
       </form>
     </Card>

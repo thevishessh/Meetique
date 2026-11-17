@@ -30,18 +30,18 @@ The app runs on **port 3001**, so it doesn't clash with other projects that use 
 
 Open **http://localhost:3001** to reach the sign-in page.
 
-**Password for every seeded account:** `CUUnnao@2026` (set by `CLIENT_INITIAL_PASSWORD` in `.env`). After the first login, click your name (top right), choose **My account**, and change it.
+**Password for every seeded account:** `CUUnnao@2026` (set by `CLIENT_INITIAL_PASSWORD` in `.env`). New and imported accounts must set their own password at first sign-in. Anyone can change theirs later under **My account** (click your name, top right). Lost passwords: **Forgot password?** on the sign-in page (needs email configured).
 
 | Role | Email | Lands on |
 |---|---|---|
 | Admin (Campus IT) | `admin@cuunnao.test` | `/admin` |
-| Officer: Campus Director, **can call immediate meetings** | `director@cuunnao.test` | `/officer` |
+| Officer: Campus Director, **can call immediate meetings**, **approves bookings** | `director@cuunnao.test` | `/officer` |
 | Officer: Registrar, **can call immediate meetings** | `registrar@cuunnao.test` | `/officer` |
 | Officers | `admissions@` · `exams@` · `accounts@` · `placements@` · `hostel@` · `dsw@` + `cuunnao.test` | `/officer` |
 | Receptionist | `frontoffice@cuunnao.test`, `reception@cuunnao.test` | `/reception` |
 | Staff (**sample**, for testing) | `faculty.cse@`, `faculty.mgmt@`, `library@` + `cuunnao.test` | `/me` |
 
-> The `@cuunnao.test` emails and desk names are **placeholders**. Import the real staff list with **Admin → Staff → Bulk import (CSV)**, then deactivate the sample accounts.
+> The `@cuunnao.test` emails, desk names and L Codes (`L9xxx`) are **placeholders**. Import the real staff list with **Admin → Staff → Bulk import (CSV)**, then deactivate the sample accounts.
 
 ---
 
@@ -58,12 +58,19 @@ Open **http://localhost:3001** to reach the sign-in page.
 | **ADMIN** | Staff accounts and CSV import, officers and designated rights, departments, holidays, reports, settings |
 
 ### Flow 1: Staff books a meeting
-Sign in → **Book a meeting** → department → officer → date and free slot → write the agenda. Name, email and employee ID come from the account. The system issues a token (`CUU-2026-000001`) and a QR slip. The meeting appears in **My meetings**, then the visitor is checked in at reception or by the officer's office, and the officer starts and completes the meeting.
+Sign in → **Book a meeting** → department → officer → **meeting length** (15/30/45/60… up to the officer's limit) → date and free slot → write the agenda. Name, email and employee ID come from the account. The system issues a token (`CUU-2026-000001`) and a QR slip. The meeting appears in **My meetings**, then the visitor is checked in at reception or by the officer's office, and the officer starts and completes the meeting.
 
 ### Flow 2: Designated officer calls an immediate meeting
-**Call immediate meeting** → search anyone (name, designation, department, employee ID) → **Right now** or a set time → purpose. Working hours and slot rules are skipped. The person gets a **red URGENT banner on every screen**, with a beep and a browser notification, and answers **Acknowledge** / **On my way**. The officer sees the response live. The attendee cannot cancel or reschedule it.
+**Call immediate meeting** → pick **one or more people** (search by name, designation, department, L Code) → **Right now** or a set time → purpose. A live **busy warning** shows anyone already in a meeting at that time. Working hours and slot rules are skipped. The person gets a **red URGENT banner on every screen**, with a beep and a browser notification, and answers **Acknowledge** / **On my way**. The officer sees the response live. The attendee cannot cancel or reschedule it.
 
 ### Also included
+- **Phone alerts (Web Push, installable PWA):** immediate calls, new bookings, approvals, cancellations, reschedules and 15-minute reminders reach the phone even when the app is closed. Plus an in-app notification bell
+- **Approval workflow:** officers can require approval; requests hold the slot as *Awaiting approval* until approved or declined
+- **Flexible meeting length:** staff choose any length up to the officer's maximum; meetings never cross the lunch break; a buffer is kept after each meeting
+- **L Code (employee code) is compulsory** for every account, CSV import, walk-in, and for booking if missing from the profile
+- **Meeting notes:** the officer records decisions; the attendee sees them in My meetings
+- **Background job:** 15-minute reminders, automatic *No Show* 30 minutes after an unattended meeting, automatic *Declined* for unanswered requests
+- **Account security:** forced password change at first sign-in, strong-password rule, lockout after 5 wrong passwords (15 min), per-network throttle on failed attempts, email password reset
 - **Slot engine:** weekly hours, lunch break, meeting length, buffer, seats per slot, daily limit, advance window, minimum notice, same-day rule, per-officer leave, special hours
 - **Campus-wide holidays:** close normal booking for every officer
 - **No double booking:** row lock per officer plus a PostgreSQL exclusion constraint (`npm run test:concurrency` proves it)
@@ -88,7 +95,10 @@ Sign in → **Book a meeting** → department → officer → date and free slot
 | `NEXT_PUBLIC_APP_NAME` | `CU Unnao Meetings` | Name in the logo and browser tab |
 | `NEXT_PUBLIC_APP_TAGLINE` | `Staff meeting booking & immediate meetings.` | Tagline |
 | `CLIENT_INITIAL_PASSWORD` | `CUUnnao@2026` | First password for seeded accounts |
-| `RESEND_API_KEY`, `EMAIL_FROM` | *(empty)* | Email notifications via Resend |
+| `RESEND_API_KEY`, `EMAIL_FROM` | *(empty)* | Email via Resend (needed for **forgot password** and email alerts) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | generated | **Phone alerts** (Web Push). Keep the private key secret; regenerate with `npx web-push generate-vapid-keys` |
+| `CRON_SECRET` | generated | Protects `POST /api/cron/tick` (for external cron on serverless hosts) |
+| `DISABLE_JOBS` | `false` | `true` turns off the built-in reminder / auto no-show timer |
 
 The client's starting data (departments, desks, hours, designated officers, holidays, sample staff) lives in **`prisma/seeds/cu-unnao.ts`**. Edit it before the first seed, or change everything later from the admin panel.
 
@@ -123,7 +133,10 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 | Deployment mode and branding | `src/lib/config.ts` |
 | Login, session, roles | `src/lib/auth.ts`, `src/app/api/auth/*`, `src/app/account/*` |
 | Slot generation | `src/lib/slots.ts` |
-| Booking, immediate meetings, responses, status changes | `src/lib/booking.ts` (`bookAppointment`, `summonMeeting`, `respondToMeeting`, `changeStatus`) |
+| Booking, approval, group immediate meetings, busy check, notes, status changes | `src/lib/booking.ts` (`bookAppointment`, `summonMeeting`, `findConflicts`, `respondToMeeting`, `saveNotes`, `changeStatus`) |
+| Alerts (bell + phone push + email) | `src/lib/alerts.ts` → `src/lib/push.ts`, `src/lib/mailer.ts`; service worker `public/sw.js`; client `src/components/push-client.tsx`, `notification-bell.tsx` |
+| Reminders / auto no-show | `src/lib/jobs.ts`, started by `src/instrumentation.ts` |
+| Login lockout / throttling | `src/app/api/auth/login/route.ts`, `src/lib/rate-limit.ts` |
 | Status rules and per-role permissions | `src/lib/status.ts` |
 | Token numbers and QR | `src/lib/tokens.ts` |
 | Urgent alert banner | `src/components/urgent-alert.tsx` (inside `src/components/app-shell.tsx`) |
@@ -139,6 +152,8 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 | URL | Who | What |
 |---|---|---|
 | `/login` | everyone | Sign in |
+| `/change-password` | first sign-in | Set your own password (required) |
+| `/forgot-password`, `/reset-password/<token>` | everyone | Email password reset |
 | `/me` | all signed-in users | My meetings + urgent alerts |
 | `/o/cu-unnao` → `/o/cu-unnao/<officer>` | signed-in users | Book a meeting |
 | `/a/<code>` | attendee | Token slip with QR (print / cancel) |
@@ -147,7 +162,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 | `/officer/summon` | designated officers | Call an immediate meeting |
 | `/reception` | receptionists, admins | QR scanner, check-in, walk-ins, live queue |
 | `/admin/*` | admins | Overview, appointments, officers, departments, staff, holidays, reports, settings |
-| `/account` | all signed-in users | Change password |
+| `/account` | all signed-in users | Phone alerts on/off + test, change password |
 
 ### API endpoints
 
@@ -155,6 +170,12 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 |---|---|---|
 | POST | `/api/auth/login`, `/api/auth/logout` | Sign in / out |
 | POST | `/api/auth/password` | Change own password |
+| POST | `/api/auth/forgot`, `/api/auth/reset` | Email password reset |
+| POST/DELETE | `/api/push/subscribe` · POST `/api/push/test` | Register a device for phone alerts / send a test |
+| GET | `/api/notifications` · POST `/api/notifications/read` | Notification bell |
+| PUT | `/api/appointments/:id/notes` | Meeting notes |
+| GET | `/api/summons/conflicts` | Who is busy at a given time |
+| POST | `/api/cron/tick` | Run reminders / auto no-show (needs `x-cron-secret`) |
 | GET/POST | `/api/officers` · PATCH/DELETE `/api/officers/:id` | Officers (incl. `canSummon`) |
 | GET/POST | `/api/departments` · PATCH/DELETE `/api/departments/:id` | Departments |
 | POST | `/api/staff` · PATCH `/api/staff/:id` | Staff / receptionist / admin accounts |
@@ -165,8 +186,8 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 | GET/POST | `/api/appointments` | List (staff views) / book a meeting or walk-in |
 | GET/PATCH | `/api/appointments/:id` | View / reschedule |
 | POST | `/api/appointments/:id/cancel` | Cancel |
-| PATCH | `/api/appointments/:id/status` | Check-in → waiting → in progress → completed, no-show |
-| POST | `/api/summons` | Designated officer calls an immediate meeting |
+| PATCH | `/api/appointments/:id/status` | Approve / decline, check-in → waiting → in progress → completed, no-show |
+| POST | `/api/summons` | Designated officer calls one or more people for an immediate meeting |
 | GET | `/api/me/urgent` | Pending immediate meetings for the signed-in user |
 | POST | `/api/appointments/:id/respond` | Attendee answers: Acknowledged / On my way |
 | GET | `/api/tokens/:token` | Verify a QR token |
@@ -185,8 +206,9 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 3. `npx prisma migrate deploy`, then `npm run db:seed` (first time only).
 4. Admin → **Staff → Bulk import** to add the real staff, then deactivate the sample accounts.
 5. `npm run build`, then `npm start` (keep it running with pm2 or systemd).
-6. **HTTPS is required.** Without it, the camera QR scanner and browser notifications won't work.
-7. Set up daily database backups (`pg_dump`).
+6. **HTTPS is required.** Without it, phone alerts and the camera QR scanner won't work.
+7. Every staff member: first sign-in → set password → **Turn on phone alerts**.
+8. Set up daily database backups (`pg_dump`).
 
 ---
 
@@ -198,7 +220,9 @@ The same code can run as a **public** visitor-booking portal for any organizatio
 
 ## Not built yet
 
-- SMS / WhatsApp alerts (the urgent alert currently needs the app open in a browser; email works with Resend)
+- SMS / WhatsApp alerts (phone push alerts are free and built in; SMS needs a paid provider such as MSG91)
 - Google / Outlook calendar sync
 - PDF export of reports (CSV opens in Excel)
 - Campus logo upload
+- Director's PA / delegate access to another officer's queue
+- Audit-log viewer page (the log is recorded, not yet shown in the UI)

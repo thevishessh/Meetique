@@ -52,6 +52,7 @@ export function WalkIn({ officers, today, fields }: { officers: { id: string; na
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Visitor name"><Input name="name" required /></Field>
               <Field label="Mobile"><Input name="phone" type="tel" required /></Field>
+              <Field label="L Code" hint="Compulsory — links the visit to the staff member's account"><Input name="lCode" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="e.g. L12345" className="uppercase" /></Field>
               <VisitorExtraFields config={fields} />
               <Field label="Purpose" className="sm:col-span-2"><Input name="purpose" /></Field>
             </div>

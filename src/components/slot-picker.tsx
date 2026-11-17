@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import { cx } from "./ui";
 
 type Slot = { start: string; end: string; label: string; booked: number; capacity: number; available: boolean; reason?: string };
-type Day = { date: string; timezone: string; status: string; message?: string; breaks: { label: string }[]; slots: Slot[] };
+type Day = { date: string; timezone: string; status: string; message?: string; durationMin: number; durations: number[]; breaks: { label: string }[]; slots: Slot[] };
 
 const REASON: Record<string, string> = { FULL: "Booked", PAST: "Passed", NOTICE: "Too soon", SAME_DAY: "Closed", DAY_LIMIT: "Day full", NOT_BOOKABLE: "Closed" };
 
@@ -17,6 +17,8 @@ export default function SlotPicker({
   onChange,
   staff,
   ignore,
+  duration,
+  onDuration,
 }: {
   officerId: string;
   startDate: string;
@@ -26,6 +28,10 @@ export default function SlotPicker({
   onChange: (start: string | null, label?: string, date?: string) => void;
   staff?: boolean;
   ignore?: string;
+  /** Selected meeting length (minutes). Omit to use the officer's slot length. */
+  duration?: number;
+  /** When given, the booker can choose the meeting length */
+  onDuration?: (min: number) => void;
 }) {
   const dates = days ?? Array.from({ length: count }, (_, i) => ({ date: DateTime.fromISO(startDate).plus({ days: i }).toFormat("yyyy-MM-dd"), open: -1 }));
   const firstOpen = dates.find((d) => d.open !== 0)?.date ?? dates[0].date;
@@ -39,7 +45,7 @@ export default function SlotPicker({
     let alive = true;
     setLoading(true);
     setErr(null);
-    const qs = new URLSearchParams({ officerId, date, ...(staff ? { staff: "1" } : {}), ...(ignore ? { ignore } : {}) });
+    const qs = new URLSearchParams({ officerId, date, ...(staff ? { staff: "1" } : {}), ...(ignore ? { ignore } : {}), ...(duration ? { duration: String(duration) } : {}) });
     fetch(`/api/slots?${qs}`, { cache: "no-store" })
       .then(async (r) => {
         const d = await r.json();
@@ -51,7 +57,7 @@ export default function SlotPicker({
     return () => {
       alive = false;
     };
-  }, [officerId, date, staff, ignore, tick]);
+  }, [officerId, date, staff, ignore, tick, duration]);
 
   // Refresh availability every 30s so visitors see slots taken by others
   useEffect(() => {
@@ -63,8 +69,32 @@ export default function SlotPicker({
   const shown = day?.slots.filter((s) => s.reason !== "PAST") ?? [];
   const available = shown.filter((s) => s.available).length;
 
+  const lengths = day?.durations ?? [];
   return (
     <div>
+      {onDuration && lengths.length > 1 && (
+        <div className="mb-4">
+          <div className="mb-1.5 text-sm font-medium text-slate-700">Meeting length</div>
+          <div className="flex flex-wrap gap-2">
+            {lengths.map((m) => {
+              const active = (duration ?? day?.durationMin) === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    onDuration(m);
+                    onChange(null);
+                  }}
+                  className={cx("rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition", active ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-slate-700 ring-slate-300 hover:ring-brand-300")}
+                >
+                  {m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hour${m > 60 ? "s" : ""}` : `${Math.floor(m / 60)} h ${m % 60} min`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
         {dates.map((d) => {
           const dt = DateTime.fromISO(d.date);
@@ -126,7 +156,7 @@ export default function SlotPicker({
                   >
                     <span>{s.label}</span>
                     <span className={cx("text-[10px] font-normal", selected ? "text-brand-100" : "")}>
-                      {!s.available ? REASON[s.reason ?? "FULL"] : s.capacity > 1 ? `${s.capacity - s.booked} of ${s.capacity} left` : "Available"}
+                      {!s.available ? REASON[s.reason ?? "FULL"] : s.capacity > 1 ? `${s.capacity - s.booked} of ${s.capacity} left` : `till ${DateTime.fromISO(s.end).setZone(day.timezone).toFormat("h:mm a")}`}
                     </span>
                   </button>
                 );

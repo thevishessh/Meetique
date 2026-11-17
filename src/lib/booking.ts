@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { DateTime } from "luxon";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppointmentStatus, AppointmentSource, AttendeeResponse } from "@/generated/prisma/enums";
@@ -6,7 +7,7 @@ import { AppError, isExclusionViolation } from "./errors";
 import { getDaySlots } from "./slots";
 import { ACTIVE_STATUSES, ROLE_CAN_SET, TRANSITIONS, STATUS_LABEL } from "./status";
 import { formatTokenNumber, randomSecret } from "./tokens";
-import { localDateOf } from "./time";
+import { fmtRange, localDateOf } from "./time";
 import type { SessionUser } from "./auth";
 
 type Tx = Prisma.TransactionClient;
@@ -19,8 +20,8 @@ async function lockOfficer(tx: Tx, officerId: string) {
   if (!rows.length) throw new AppError("NOT_FOUND", "Officer not found", 404);
 }
 
-/** Validates that `startAt` is a real, currently available slot, and picks a free seat */
-async function claimSlot(tx: Tx, officerId: string, startAt: string, opts: { staffOverride?: boolean; ignoreAppointmentId?: string }) {
+/** Validates that `startAt` (for `durationMin`) is a real, currently free slot, and picks a free seat */
+async function claimSlot(tx: Tx, officerId: string, startAt: string, opts: { staffOverride?: boolean; ignoreAppointmentId?: string; durationMin?: number }) {
   const officer = await tx.officerProfile.findUniqueOrThrow({
     where: { id: officerId },
     include: { user: { select: { organization: { select: { timezone: true } } } } },
@@ -31,11 +32,14 @@ async function claimSlot(tx: Tx, officerId: string, startAt: string, opts: { sta
   const date = localDateOf(start.toJSDate(), tz);
 
   const day = await getDaySlots(officerId, date, opts, tx);
+  if (opts.durationMin && day.durationMin !== opts.durationMin) {
+    throw new AppError("BAD_DURATION", `Meetings with this officer can be ${day.durations.join(", ")} minutes`, 422);
+  }
   const slot = day.slots.find((s) => DateTime.fromISO(s.start).toMillis() === start.toMillis());
   if (!slot) throw new AppError("BAD_SLOT", day.message ?? "That time is not a valid slot for this officer", 422);
   if (!slot.available) {
     const msg: Record<string, string> = {
-      FULL: "Sorry, this slot was just booked by someone else. Please pick another slot.",
+      FULL: "Sorry, this time was just booked by someone else (or doesn't fit the meeting length). Please pick another slot.",
       PAST: "This slot has already passed.",
       NOTICE: `Bookings need at least ${officer.minNoticeMin} minutes notice.`,
       SAME_DAY: "Same-day booking is not allowed for this officer.",
@@ -72,77 +76,6 @@ async function nextTokenNumber(tx: Tx, orgId: string, shortCode: string, tz: str
   return formatTokenNumber(shortCode, year, Number(rows[0].last_value));
 }
 
-export type BookingInput = {
-  officerId: string;
-  startAt: string;
-  name: string;
-  phone?: string | null;
-  email?: string | null;
-  /** Staff member attending (internal booking). Their profile is used as the visitor card. */
-  attendeeUserId?: string | null;
-  purpose?: string | null;
-  visitorCategory?: string | null;
-  referenceNo?: string | null;
-  source?: AppointmentSource;
-  actor?: SessionUser | null;
-};
-
-/**
- * Atomic booking:
- *  1. transaction starts, officer row locked (concurrent bookings for this officer queue up)
- *  2. slot re-validated on the server + free seat chosen
- *  3. visitor upserted, appointment created
- *  4. token number from per-org/year counter, random QR secret
- *  5. audit log, commit — the exclusion constraint is the final guard
- */
-export async function bookAppointment(input: BookingInput) {
-  const walkIn = input.source === "WALK_IN";
-  try {
-    return await prisma.$transaction(async (tx) => {
-      await lockOfficer(tx, input.officerId);
-      const { startAt, endAt, seatNo, officer } = await claimSlot(tx, input.officerId, input.startAt, { staffOverride: walkIn });
-      const org = await tx.organization.findUniqueOrThrow({ where: { id: officer.organizationId } });
-      if (input.actor && input.actor.organizationId !== org.id) throw new AppError("FORBIDDEN", "Wrong organization", 403);
-
-      const visitor = await upsertVisitor(tx, org.id, input);
-
-      const status: AppointmentStatus = walkIn ? "CHECKED_IN" : "BOOKED";
-      const appt = await tx.appointment.create({
-        data: {
-          organizationId: org.id,
-          visitorId: visitor.id,
-          officerId: officer.id,
-          startAt,
-          endAt,
-          seatNo,
-          status,
-          source: input.source ?? "ONLINE",
-          purpose: input.purpose || null,
-          visitorCategory: org.visitorCategories.includes(input.visitorCategory ?? "") ? input.visitorCategory : null,
-          referenceNo: org.referenceLabel ? input.referenceNo || null : null,
-          manageCode: randomSecret(24),
-          checkedInAt: walkIn ? new Date() : null,
-          requestedById: input.actor?.id ?? input.attendeeUserId ?? null,
-        },
-      });
-
-      const tokenNumber = await nextTokenNumber(tx, org.id, org.shortCode, org.timezone);
-      const token = await tx.token.create({
-        data: { appointmentId: appt.id, tokenNumber, qrSecret: randomSecret(18) },
-      });
-
-      await tx.appointmentLog.create({
-        data: { appointmentId: appt.id, oldStatus: null, newStatus: status, actorId: input.actor?.id ?? null, note: walkIn ? "Walk-in registration" : "Online booking" },
-      });
-
-      return { appointment: appt, token };
-    }, TX_OPTS);
-  } catch (e) {
-    if (isExclusionViolation(e)) throw new AppError("SLOT_UNAVAILABLE", "Sorry, this slot was just booked by someone else. Please pick another slot.", 409);
-    throw e;
-  }
-}
-
 /** Visitor card: linked to a staff user (internal), or keyed by mobile number (walk-in / public) */
 async function upsertVisitor(tx: Tx, orgId: string, input: { name: string; phone?: string | null; email?: string | null; attendeeUserId?: string | null }) {
   if (input.attendeeUserId) {
@@ -163,16 +96,123 @@ async function upsertVisitor(tx: Tx, orgId: string, input: { name: string; phone
   });
 }
 
+export type BookingInput = {
+  officerId: string;
+  startAt: string;
+  /** Meeting length; must be one of the officer's allowed lengths (default: slot length) */
+  durationMin?: number;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  /** Staff member attending (internal booking). Their profile is used as the visitor card. */
+  attendeeUserId?: string | null;
+  purpose?: string | null;
+  visitorCategory?: string | null;
+  referenceNo?: string | null;
+  source?: AppointmentSource;
+  actor?: SessionUser | null;
+};
+
 /**
- * Immediate meeting: a designated officer (canSummon) calls any staff member in, now or at a set time.
- * Skips the slot engine (no notice / working-hours / capacity rules) — it is a priority call —
- * but still runs inside the officer lock and takes the next free seat, so the exclusion
- * constraint keeps working and any overlap with the officer's own bookings stays visible.
+ * Atomic booking:
+ *  1. transaction starts, officer row locked (concurrent bookings for this officer queue up)
+ *  2. slot re-validated on the server for the chosen length + free seat chosen
+ *  3. visitor upserted, appointment created (PENDING if the officer approves bookings)
+ *  4. token number from per-org/year counter, random QR secret
+ *  5. audit log, commit — the exclusion constraint is the final guard
  */
-export async function summonMeeting(input: { actor: SessionUser; targetUserId: string; startAt: Date; durationMin: number; purpose: string }) {
+export async function bookAppointment(input: BookingInput) {
+  const walkIn = input.source === "WALK_IN";
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await lockOfficer(tx, input.officerId);
+      const { startAt, endAt, seatNo, officer } = await claimSlot(tx, input.officerId, input.startAt, { staffOverride: walkIn, durationMin: input.durationMin });
+      const org = await tx.organization.findUniqueOrThrow({ where: { id: officer.organizationId } });
+      if (input.actor && input.actor.organizationId !== org.id) throw new AppError("FORBIDDEN", "Wrong organization", 403);
+
+      const visitor = await upsertVisitor(tx, org.id, input);
+
+      const status: AppointmentStatus = walkIn ? "CHECKED_IN" : officer.requiresApproval ? "PENDING" : "BOOKED";
+      const appt = await tx.appointment.create({
+        data: {
+          organizationId: org.id,
+          visitorId: visitor.id,
+          officerId: officer.id,
+          startAt,
+          endAt,
+          seatNo,
+          status,
+          source: input.source ?? "ONLINE",
+          purpose: input.purpose || null,
+          visitorCategory: org.visitorCategories.includes(input.visitorCategory ?? "") ? input.visitorCategory : null,
+          referenceNo: input.referenceNo || null,
+          manageCode: randomSecret(24),
+          checkedInAt: walkIn ? new Date() : null,
+          requestedById: input.actor?.id ?? input.attendeeUserId ?? null,
+        },
+      });
+
+      const tokenNumber = await nextTokenNumber(tx, org.id, org.shortCode, org.timezone);
+      const token = await tx.token.create({
+        data: { appointmentId: appt.id, tokenNumber, qrSecret: randomSecret(18) },
+      });
+
+      await tx.appointmentLog.create({
+        data: {
+          appointmentId: appt.id,
+          oldStatus: null,
+          newStatus: status,
+          actorId: input.actor?.id ?? input.attendeeUserId ?? null,
+          note: walkIn ? "Walk-in registration" : status === "PENDING" ? "Booking request (awaiting approval)" : "Booked",
+        },
+      });
+
+      return { appointment: appt, token };
+    }, TX_OPTS);
+  } catch (e) {
+    if (isExclusionViolation(e)) throw new AppError("SLOT_UNAVAILABLE", "Sorry, this slot was just booked by someone else. Please pick another slot.", 409);
+    throw e;
+  }
+}
+
+export type Busy = { userId: string; name: string; items: string[] };
+
+/**
+ * Who among `userIds` already has something during [start, end):
+ * meetings they attend, and — for officers — meetings in their own queue.
+ */
+export async function findConflicts(orgId: string, userIds: string[], start: Date, end: Date, tz: string): Promise<Busy[]> {
+  if (!userIds.length) return [];
+  const [asAttendee, asOfficer, users] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { organizationId: orgId, status: { in: ACTIVE_STATUSES }, startAt: { lt: end }, endAt: { gt: start }, visitor: { userId: { in: userIds } } },
+      include: { visitor: { select: { userId: true } }, officer: { select: { user: { select: { name: true } } } } },
+    }),
+    prisma.appointment.findMany({
+      where: { organizationId: orgId, status: { in: ACTIVE_STATUSES }, startAt: { lt: end }, endAt: { gt: start }, officer: { userId: { in: userIds } } },
+      include: { officer: { select: { userId: true } }, visitor: { select: { name: true } } },
+    }),
+    prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } }),
+  ]);
+  const map = new Map<string, string[]>();
+  const add = (id: string, text: string) => map.set(id, [...(map.get(id) ?? []), text]);
+  for (const a of asAttendee) add(a.visitor.userId!, `${fmtRange(a.startAt, a.endAt, tz)} meeting with ${a.officer.user.name}`);
+  for (const a of asOfficer) add(a.officer.userId, `${fmtRange(a.startAt, a.endAt, tz)} has ${a.visitor.name} in their queue`);
+  return users.filter((u) => map.has(u.id)).map((u) => ({ userId: u.id, name: u.name, items: map.get(u.id)! }));
+}
+
+/**
+ * Immediate meeting: a designated officer (canSummon) calls one or more people in, now or at a set time.
+ * Skips the slot engine (no notice / working-hours / capacity rules) — it is a priority call —
+ * but still runs inside the officer lock and gives every attendee the next free seat, so the
+ * exclusion constraint keeps working. Several people called together share a groupId.
+ */
+export async function summonMeeting(input: { actor: SessionUser; targetUserIds: string[]; startAt: Date; durationMin: number; purpose: string }) {
   const { actor } = input;
   if (!actor.officerId) throw new AppError("FORBIDDEN", "Only officers can call immediate meetings", 403);
-  if (input.targetUserId === actor.id) throw new AppError("VALIDATION", "You cannot call a meeting with yourself", 422);
+  const targets = [...new Set(input.targetUserIds)];
+  if (!targets.length) throw new AppError("VALIDATION", "Choose who to call", 422);
+  if (targets.includes(actor.id)) throw new AppError("VALIDATION", "You cannot call a meeting with yourself", 422);
   return prisma.$transaction(async (tx) => {
     await lockOfficer(tx, actor.officerId!);
     const officer = await tx.officerProfile.findUniqueOrThrow({ where: { id: actor.officerId! } });
@@ -186,23 +226,32 @@ export async function summonMeeting(input: { actor: SessionUser; targetUserId: s
       select: { seatNo: true },
     });
     const taken = new Set(overlapping.map((o) => o.seatNo));
-    let seatNo = 1;
-    while (taken.has(seatNo)) seatNo++;
+    const groupId = targets.length > 1 ? randomUUID() : null;
+    const created: { appointmentId: string; tokenNumber: string; userId: string }[] = [];
 
-    const visitor = await upsertVisitor(tx, org.id, { name: "", attendeeUserId: input.targetUserId });
-    const appt = await tx.appointment.create({
-      data: {
-        organizationId: org.id, visitorId: visitor.id, officerId: officer.id, startAt, endAt, seatNo,
-        status: "BOOKED", source: "ONLINE", kind: "IMMEDIATE", purpose: input.purpose,
-        manageCode: randomSecret(24), requestedById: actor.id,
-      },
-    });
-    const tokenNumber = await nextTokenNumber(tx, org.id, org.shortCode, org.timezone);
-    const token = await tx.token.create({ data: { appointmentId: appt.id, tokenNumber, qrSecret: randomSecret(18) } });
-    await tx.appointmentLog.create({
-      data: { appointmentId: appt.id, newStatus: "BOOKED", actorId: actor.id, note: `Immediate meeting called by ${actor.name}${overlapping.length ? ` (overlaps ${overlapping.length} booking(s))` : ""}` },
-    });
-    return { appointment: appt, token, overlaps: overlapping.length };
+    for (const userId of targets) {
+      let seatNo = 1;
+      while (taken.has(seatNo)) seatNo++;
+      taken.add(seatNo);
+      const visitor = await upsertVisitor(tx, org.id, { name: "", attendeeUserId: userId });
+      const appt = await tx.appointment.create({
+        data: {
+          organizationId: org.id, visitorId: visitor.id, officerId: officer.id, startAt, endAt, seatNo,
+          status: "BOOKED", source: "ONLINE", kind: "IMMEDIATE", purpose: input.purpose, groupId,
+          manageCode: randomSecret(24), requestedById: actor.id,
+        },
+      });
+      const tokenNumber = await nextTokenNumber(tx, org.id, org.shortCode, org.timezone);
+      await tx.token.create({ data: { appointmentId: appt.id, tokenNumber, qrSecret: randomSecret(18) } });
+      await tx.appointmentLog.create({
+        data: {
+          appointmentId: appt.id, newStatus: "BOOKED", actorId: actor.id,
+          note: `Immediate meeting called by ${actor.name}${targets.length > 1 ? ` (group of ${targets.length})` : ""}${overlapping.length ? ` — overlaps ${overlapping.length} booking(s) in the officer's queue` : ""}`,
+        },
+      });
+      created.push({ appointmentId: appt.id, tokenNumber, userId });
+    }
+    return { created, groupId, overlaps: overlapping.length };
   }, TX_OPTS);
 }
 
@@ -225,13 +274,14 @@ export async function rescheduleAppointment(appointmentId: string, newStartAt: s
     return await prisma.$transaction(async (tx) => {
       await lockOfficer(tx, current.officerId);
       const a = await tx.appointment.findUniqueOrThrow({ where: { id: appointmentId } });
-      if (a.status !== "BOOKED") throw new AppError("NOT_ALLOWED", `A ${STATUS_LABEL[a.status].toLowerCase()} appointment cannot be rescheduled`, 409);
+      if (a.status !== "BOOKED" && a.status !== "PENDING") throw new AppError("NOT_ALLOWED", `A ${STATUS_LABEL[a.status].toLowerCase()} appointment cannot be rescheduled`, 409);
       if (!actor && a.startAt <= new Date()) throw new AppError("NOT_ALLOWED", "This appointment has already started", 409);
       if (!actor && a.kind === "IMMEDIATE") throw new AppError("NOT_ALLOWED", "An immediate meeting's time is set by the officer who called it", 409);
-      const slot = await claimSlot(tx, a.officerId, newStartAt, { ignoreAppointmentId: a.id, staffOverride: !!actor });
+      const durationMin = Math.round((a.endAt.getTime() - a.startAt.getTime()) / 60_000);
+      const slot = await claimSlot(tx, a.officerId, newStartAt, { ignoreAppointmentId: a.id, staffOverride: !!actor, durationMin });
       const updated = await tx.appointment.update({
         where: { id: a.id },
-        data: { startAt: slot.startAt, endAt: slot.endAt, seatNo: slot.seatNo },
+        data: { startAt: slot.startAt, endAt: slot.endAt, seatNo: slot.seatNo, reminderSentAt: null },
       });
       await tx.appointmentLog.create({
         data: { appointmentId: a.id, oldStatus: a.status, newStatus: a.status, actorId: actor?.id ?? null, note: `Rescheduled from ${a.startAt.toISOString()} to ${slot.startAt.toISOString()}` },
@@ -244,7 +294,7 @@ export async function rescheduleAppointment(appointmentId: string, newStartAt: s
   }
 }
 
-/** Changes status with transition + role checks, writes the audit log. Cancelling releases the slot and revokes the token. */
+/** Changes status with transition + role checks, writes the audit log. Cancel / decline / no-show release the slot and revoke the token. */
 export async function changeStatus(appointmentId: string, to: AppointmentStatus, actor: SessionUser | null, note?: string) {
   return prisma.$transaction(async (tx) => {
     const a = await tx.appointment.findUnique({ where: { id: appointmentId }, include: { officer: { select: { organizationId: true } } } });
@@ -260,7 +310,7 @@ export async function changeStatus(appointmentId: string, to: AppointmentStatus,
         throw new AppError("FORBIDDEN", "This appointment belongs to another officer", 403);
       }
       if (!ROLE_CAN_SET[actor.role].includes(to)) throw new AppError("FORBIDDEN", `Your role cannot mark appointments as ${STATUS_LABEL[to]}`, 403);
-    } else if (to !== "CANCELLED") {
+    } else if (to !== "CANCELLED" && to !== "NO_SHOW" && to !== "DECLINED") {
       throw new AppError("FORBIDDEN", "Not allowed", 403);
     }
 
@@ -277,17 +327,28 @@ export async function changeStatus(appointmentId: string, to: AppointmentStatus,
         ...(to === "CHECKED_IN" ? { checkedInAt: now } : {}),
         ...(to === "IN_PROGRESS" ? { startedAt: now, checkedInAt: a.checkedInAt ?? now } : {}),
         ...(to === "COMPLETED" ? { completedAt: now } : {}),
-        ...(to === "CANCELLED" ? { cancelledAt: now } : {}),
+        ...(to === "CANCELLED" || to === "DECLINED" ? { cancelledAt: now } : {}),
       },
     });
-    if (to === "CANCELLED" || to === "NO_SHOW") {
+    if (to === "CANCELLED" || to === "NO_SHOW" || to === "DECLINED") {
       await tx.token.updateMany({ where: { appointmentId: a.id, isActive: true }, data: { isActive: false, revokedAt: now } });
     }
     await tx.appointmentLog.create({
-      data: { appointmentId: a.id, oldStatus: a.status, newStatus: to, actorId: actor?.id ?? null, note: note ?? (actor ? null : "Cancelled by visitor") },
+      data: {
+        appointmentId: a.id, oldStatus: a.status, newStatus: to, actorId: actor?.id ?? null,
+        note: note ?? (to === "BOOKED" && a.status === "PENDING" ? "Approved" : actor ? null : "Cancelled by visitor"),
+      },
     });
     return updated;
   });
+}
+
+/** Officer (own meeting) or admin writes the meeting notes / outcome */
+export async function saveNotes(appointmentId: string, actor: SessionUser, notes: string) {
+  const a = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+  if (!a || a.organizationId !== actor.organizationId) throw new AppError("NOT_FOUND", "Appointment not found", 404);
+  if (!(actor.role === "ADMIN" || (actor.role === "OFFICER" && a.officerId === actor.officerId))) throw new AppError("FORBIDDEN", "Only the officer can write notes for this meeting", 403);
+  return prisma.appointment.update({ where: { id: a.id }, data: { notes: notes.trim() || null } });
 }
 
 /** Resolves a token by QR secret or token number, scoped to an organization */

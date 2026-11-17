@@ -9,6 +9,8 @@ import type { AppointmentStatus } from "@/generated/prisma/enums";
 export const dynamic = "force-dynamic";
 
 const BAR: Record<AppointmentStatus, string> = {
+  PENDING: "bg-yellow-400",
+  DECLINED: "bg-rose-300",
   BOOKED: "bg-sky-500",
   CHECKED_IN: "bg-violet-500",
   WAITING: "bg-amber-500",

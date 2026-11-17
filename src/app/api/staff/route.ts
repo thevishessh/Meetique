@@ -9,7 +9,7 @@ export const POST = handle(async (req: Request) => {
   const d = staffCreateSchema.parse(await readJson(req));
   if (await prisma.user.findUnique({ where: { email: d.email } })) return fail(409, "EMAIL_TAKEN", "An account with this email already exists");
   if (d.employeeId && (await prisma.user.findFirst({ where: { organizationId: admin.organizationId, employeeId: d.employeeId } }))) {
-    return fail(409, "EMPLOYEE_ID_TAKEN", "Another account already has this employee ID");
+    return fail(409, "L_CODE_TAKEN", "Another account already has this L Code");
   }
   if (d.departmentId && !(await prisma.department.findFirst({ where: { id: d.departmentId, organizationId: admin.organizationId } }))) {
     return fail(422, "VALIDATION", "Unknown department");

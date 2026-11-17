@@ -3,6 +3,8 @@ import type { SessionUser } from "@/lib/auth";
 import { Logo } from "./ui";
 import { NavLinks, LogoutButton } from "./nav-client";
 import { UrgentAlert } from "./urgent-alert";
+import { NotificationBell } from "./notification-bell";
+import { PushPrompt } from "./push-client";
 
 function navFor(user: SessionUser): { href: string; label: string }[] {
   const book = { href: `/o/${user.org.slug}`, label: "Book a meeting" };
@@ -50,6 +52,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
               <div className="text-sm font-medium leading-tight text-slate-900 hover:text-brand-700">{user.name}</div>
               <div className="text-xs text-slate-500">{ROLE_LABEL[user.role]}</div>
             </Link>
+            <NotificationBell />
             <LogoutButton />
           </div>
         </div>
@@ -59,6 +62,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <UrgentAlert />
+        <PushPrompt />
         {children}
       </main>
     </div>

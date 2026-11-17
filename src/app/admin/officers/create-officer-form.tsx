@@ -29,6 +29,7 @@ export function CreateOfficerForm({ departments }: { departments: { id: string; 
     >
       {err && <div className="sm:col-span-2 lg:col-span-3"><Alert>{err}</Alert></div>}
       <Field label="Full name"><Input name="name" required /></Field>
+      <Field label="L Code" hint="Compulsory"><Input name="employeeId" required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" placeholder="L12345" className="uppercase" /></Field>
       <Field label="Designation"><Input name="designation" required placeholder="Registrar" /></Field>
       <Field label="Department">
         <Select name="departmentId" defaultValue="">

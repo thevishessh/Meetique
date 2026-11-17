@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { api, formData } from "@/components/client-api";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea } from "@/components/ui";
 
-type O = { id: string; userId: string; name: string; email: string; phone: string | null; designation: string; departmentId: string | null; location: string | null; bio: string | null; isActive: boolean; canSummon: boolean };
+type O = { id: string; userId: string; name: string; email: string; employeeId: string | null; phone: string | null; designation: string; departmentId: string | null; location: string | null; bio: string | null; isActive: boolean; canSummon: boolean };
 
 export function OfficerProfileForm({ officer, departments }: { officer: O; departments: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -59,6 +59,7 @@ export function OfficerProfileForm({ officer, departments }: { officer: O; depar
       >
         {msg && <div className="sm:col-span-2 lg:col-span-3"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
         <Field label="Name"><Input name="name" defaultValue={officer.name} required /></Field>
+        <Field label="L Code"><Input name="employeeId" defaultValue={officer.employeeId ?? ""} required pattern="[A-Za-z0-9][A-Za-z0-9-]{1,19}" className="uppercase" /></Field>
         <Field label="Designation"><Input name="designation" defaultValue={officer.designation} required /></Field>
         <Field label="Department">
           <Select name="departmentId" defaultValue={officer.departmentId ?? ""}>

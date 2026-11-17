@@ -38,11 +38,12 @@ export default async function MyMeetings() {
           {a.officer.location ? ` · ${a.officer.location}` : ""}
         </div>
         {a.purpose && <div className="mt-1 text-sm text-slate-600">“{a.purpose}”</div>}
+        {a.notes && <div className="mt-1 whitespace-pre-line rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700"><b>Meeting notes:</b> {a.notes}</div>}
         {a.tokens[0] && <Link href={`/a/${a.manageCode}`} className="mt-1 inline-block font-mono text-xs text-brand-700 hover:underline">{a.tokens[0].tokenNumber} · view QR slip</Link>}
       </div>
       <div className="flex flex-col items-end gap-2">
         <StatusBadge status={a.status} />
-        {showActions && a.status === "BOOKED" && a.kind !== "IMMEDIATE" && a.startAt > now && <StatusActions id={a.id} actions={["CANCELLED"]} />}
+        {showActions && (a.status === "BOOKED" || a.status === "PENDING") && a.kind !== "IMMEDIATE" && a.startAt > now && <StatusActions id={a.id} actions={["CANCELLED"]} />}
       </div>
     </li>
   );

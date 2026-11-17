@@ -14,6 +14,7 @@ export type ApptRow = {
   purpose: string | null;
   visitorCategory?: string | null;
   referenceNo?: string | null;
+  notes?: string | null;
   officerId: string;
   kind?: "SCHEDULED" | "IMMEDIATE";
   attendeeResponse?: "ACKNOWLEDGED" | "ON_MY_WAY" | null;
@@ -51,7 +52,7 @@ export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium text-slate-900">{r.visitor.name}</div>
-                  <div className="text-xs text-slate-500">{[r.visitor.user?.jobTitle, r.visitor.user?.employeeId && `ID ${r.visitor.user.employeeId}`, r.visitor.phone, r.visitor.email].filter(Boolean).join(" · ")}</div>
+                  <div className="text-xs text-slate-500">{[r.visitor.user?.jobTitle, r.visitor.user?.employeeId && `L Code ${r.visitor.user.employeeId}`, r.visitor.phone, r.visitor.email].filter(Boolean).join(" · ")}</div>
                   {r.kind === "IMMEDIATE" && <div className="mt-1 flex flex-wrap gap-1"><Badge tone="rose">Immediate · called by {r.requestedBy?.name ?? "officer"}</Badge><ResponseBadge r={r} /></div>}
                   {(r.visitorCategory || r.referenceNo) && <div className="mt-0.5 text-xs text-slate-600">{[r.visitorCategory, r.referenceNo].filter(Boolean).join(" · ")}</div>}
                   {r.purpose && <div className="mt-1 max-w-xs text-xs text-slate-600">“{r.purpose}”</div>}

@@ -32,6 +32,7 @@ export default async function OfficerDetail({ params }: { params: Promise<{ id: 
           userId: officer.userId,
           name: officer.user.name,
           email: officer.user.email,
+          employeeId: officer.user.employeeId,
           phone: officer.user.phone,
           designation: officer.designation,
           departmentId: officer.departmentId,

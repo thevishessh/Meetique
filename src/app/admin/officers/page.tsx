@@ -12,7 +12,7 @@ export default async function OfficersPage() {
   const [officers, departments] = await Promise.all([
     prisma.officerProfile.findMany({
       where: { organizationId: user.organizationId },
-      include: { user: { select: { name: true, email: true, isActive: true } }, department: true, workingHours: { orderBy: { weekday: "asc" } } },
+      include: { user: { select: { name: true, email: true, isActive: true, employeeId: true } }, department: true, workingHours: { orderBy: { weekday: "asc" } } },
       orderBy: { user: { name: "asc" } },
     }),
     prisma.department.findMany({ where: { organizationId: user.organizationId }, orderBy: { name: "asc" } }),
@@ -31,10 +31,11 @@ export default async function OfficersPage() {
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700">{o.user.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-slate-900">{o.user.name} <span className="font-normal text-slate-500">· {o.designation}</span></div>
-                    <div className="text-xs text-slate-500">{o.department?.name ?? "No department"} · {o.user.email}</div>
+                    <div className="text-xs text-slate-500">{o.department?.name ?? "No department"} · {o.user.email}{o.user.employeeId ? ` · L Code ${o.user.employeeId}` : " · ⚠ no L Code"}</div>
                   </div>
                   <div className="text-xs text-slate-500">{o.workingHours.length ? o.workingHours.map((h) => WD[h.weekday]).join(", ") : "No hours set"} · {o.slotDurationMin}m slots</div>
                   {o.canSummon && <Badge tone="rose">Can call meetings</Badge>}
+                  {o.requiresApproval && <Badge tone="amber">Approves bookings</Badge>}
                   {!o.user.isActive ? <Badge tone="rose">Deactivated</Badge> : o.isBookable ? <Badge tone="green">Bookable</Badge> : <Badge tone="amber">Paused</Badge>}
                   <span className="text-sm text-brand-600">Manage →</span>
                 </Link>
@@ -46,7 +47,7 @@ export default async function OfficersPage() {
         )}
       </Card>
       <Card>
-        <CardHeader title="Add officer" description="Creates a login for the officer with default hours Mon–Sat 10:00–14:00 (break 12:00–12:30). They can change it later." />
+        <CardHeader title="Add officer" description="Creates a login (they must set their own password at first sign-in) with default hours Mon–Sat 10:00–14:00 (break 12:00–12:30). They can change it later." />
         <CreateOfficerForm departments={departments.map((d) => ({ id: d.id, name: d.name }))} />
       </Card>
     </div>

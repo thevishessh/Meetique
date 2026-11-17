@@ -11,6 +11,9 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   const target = await prisma.user.findFirst({ where: { id, organizationId: admin.organizationId } });
   if (!target) return fail(404, "NOT_FOUND", "User not found");
   const d = staffUpdateSchema.parse(await readJson(req));
+  if (d.employeeId && (await prisma.user.findFirst({ where: { organizationId: admin.organizationId, employeeId: d.employeeId, NOT: { id } } }))) {
+    return fail(409, "L_CODE_TAKEN", "Another account already has this L Code");
+  }
   if (target.id === admin.id && d.isActive === false) return fail(409, "SELF", "You cannot deactivate your own account");
   await prisma.user.update({
     where: { id },
@@ -21,7 +24,7 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
       jobTitle: d.jobTitle,
       phone: d.phone,
       departmentId: d.departmentId,
-      ...(d.password ? { passwordHash: await hashPassword(d.password) } : {}),
+      ...(d.password ? { passwordHash: await hashPassword(d.password), mustChangePassword: true, failedLoginCount: 0, lockedUntil: null } : {}),
     },
   });
   if (target.role === "OFFICER" && d.isActive === false) await prisma.officerProfile.updateMany({ where: { userId: id }, data: { isBookable: false } });

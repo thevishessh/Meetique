@@ -22,7 +22,8 @@ export const POST = handle(async (req: Request) => {
     officer: a.officer.user.name,
     time: fmtRange(a.startAt, a.endAt, tz),
   };
-  if (!t.isActive || a.status === "CANCELLED") return fail(409, "CANCELLED", `Token ${t.tokenNumber} is cancelled / no longer valid`);
+  if (!t.isActive || a.status === "CANCELLED" || a.status === "DECLINED") return fail(409, "CANCELLED", `Token ${t.tokenNumber} is cancelled / no longer valid`);
+  if (a.status === "PENDING") return fail(409, "NOT_APPROVED", `Token ${t.tokenNumber} has not been approved by the officer yet`);
   if (a.status !== "BOOKED") return ok({ ...info, status: a.status, message: `Already ${STATUS_LABEL[a.status]}` });
   if (localDateOf(a.startAt, tz) !== todayIn(tz)) {
     return fail(409, "WRONG_DAY", `Token ${t.tokenNumber} is for ${localDateOf(a.startAt, tz)}, not today`);
