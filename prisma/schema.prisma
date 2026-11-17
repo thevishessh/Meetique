@@ -100,6 +100,8 @@ model User {
   employeeId     String?  @map("employee_id")
   jobTitle       String?  @map("job_title")
   departmentId   String?  @map("department_id")
+  /// Personal assistant (PA) of this officer: gets the Reception desk for that officer only
+  paOfficerId    String?  @map("pa_officer_id")
   isActive       Boolean  @default(true) @map("is_active")
   /// Must set a new password at next sign-in (new accounts, admin resets)
   mustChangePassword Boolean   @default(true) @map("must_change_password")
@@ -112,6 +114,7 @@ model User {
   notifications  UserNotification[]
   passwordResets PasswordReset[]
   department     Department?      @relation("UserDepartment", fields: [departmentId], references: [id], onDelete: SetNull)
+  paFor          OfficerProfile?  @relation("OfficerPA", fields: [paOfficerId], references: [id], onDelete: SetNull)
   officerProfile OfficerProfile?
   logs           AppointmentLog[]
   visitorCard    Visitor?
@@ -163,6 +166,7 @@ model OfficerProfile {
   maxDurationMin    Int     @default(60) @map("max_duration_min")
 
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistants   User[]              @relation("OfficerPA")
   department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   workingHours WorkingHour[]
   blocks       AvailabilityBlock[]

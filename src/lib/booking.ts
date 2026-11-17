@@ -302,14 +302,17 @@ export async function changeStatus(appointmentId: string, to: AppointmentStatus,
 
     if (actor) {
       if (a.organizationId !== actor.organizationId) throw new AppError("NOT_FOUND", "Appointment not found", 404);
-      if (actor.role === "STAFF") {
+      // An officer's PA works the reception desk for that officer's visitors
+      const asPA = actor.role === "STAFF" && actor.pa?.officerId === a.officerId;
+      if (actor.role === "STAFF" && !asPA) {
         const v = await tx.visitor.findUnique({ where: { id: a.visitorId }, select: { userId: true } });
         if (v?.userId !== actor.id) throw new AppError("NOT_FOUND", "Appointment not found", 404);
         if (a.kind === "IMMEDIATE") throw new AppError("FORBIDDEN", "An immediate meeting called by an officer cannot be cancelled by the attendee", 403);
       } else if (actor.role === "OFFICER" && a.officerId !== actor.officerId) {
         throw new AppError("FORBIDDEN", "This appointment belongs to another officer", 403);
       }
-      if (!ROLE_CAN_SET[actor.role].includes(to)) throw new AppError("FORBIDDEN", `Your role cannot mark appointments as ${STATUS_LABEL[to]}`, 403);
+      const allowed = asPA ? ROLE_CAN_SET.RECEPTIONIST : ROLE_CAN_SET[actor.role];
+      if (!allowed.includes(to)) throw new AppError("FORBIDDEN", `Your role cannot mark appointments as ${STATUS_LABEL[to]}`, 403);
     } else if (to !== "CANCELLED" && to !== "NO_SHOW" && to !== "DECLINED") {
       throw new AppError("FORBIDDEN", "Not allowed", 403);
     }

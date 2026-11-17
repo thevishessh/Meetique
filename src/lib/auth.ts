@@ -57,6 +57,8 @@ export type SessionUser = {
   employeeId: string | null;
   /** Must set a new password before using the app */
   mustChangePassword: boolean;
+  /** Set when this staff member is the personal assistant (PA) of an officer */
+  pa: { officerId: string; officerName: string } | null;
   org: { id: string; name: string; slug: string; timezone: string; shortCode: string };
 };
 
@@ -72,6 +74,7 @@ export async function getUser(): Promise<SessionUser | null> {
       include: {
         organization: { select: { id: true, name: true, slug: true, timezone: true, shortCode: true } },
         officerProfile: { select: { id: true, canSummon: true } },
+        paFor: { select: { id: true, user: { select: { name: true } } } },
       },
     });
     if (!u || !u.isActive) return null;
@@ -85,6 +88,7 @@ export async function getUser(): Promise<SessionUser | null> {
       canSummon: !!u.officerProfile?.canSummon,
       employeeId: u.employeeId,
       mustChangePassword: u.mustChangePassword,
+      pa: u.role === "STAFF" && u.paFor ? { officerId: u.paFor.id, officerName: u.paFor.user.name } : null,
       org: u.organization,
     };
   } catch {
@@ -108,6 +112,16 @@ export async function requirePageUser(...roles: Role[]): Promise<SessionUser> {
   if (u.mustChangePassword) redirect("/change-password");
   if (roles.length && !roles.includes(u.role)) redirect(homeFor(u.role));
   return u;
+}
+
+/** Reception desk access: admins and receptionists (all officers), or an officer's PA (that officer only) */
+export function canUseReception(u: SessionUser): boolean {
+  return u.role === "ADMIN" || u.role === "RECEPTIONIST" || !!u.pa;
+}
+
+/** Which officer's visitors this user may handle at reception; null = all officers */
+export function receptionScope(u: SessionUser): string | null {
+  return u.role === "ADMIN" || u.role === "RECEPTIONIST" ? null : u.pa?.officerId ?? null;
 }
 
 export function homeFor(role: Role) {

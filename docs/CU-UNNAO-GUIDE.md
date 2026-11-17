@@ -32,6 +32,7 @@
 | `registrar@cuunnao.test` | Officer: **designated** | L9102 |
 | `admissions@` `exams@` `accounts@` `placements@` `hostel@` `dsw@` + `cuunnao.test` | Officers | L9101, L9103–L9107 |
 | `faculty.cse@`, `faculty.mgmt@`, `library@` + `cuunnao.test` | Staff (**sample**) | L9201–L9203 |
+| `director.pa@cuunnao.test` | Staff + **Director का PA** (sample) | L9204 |
 
 ### Login की security (नई)
 | Rule | कहाँ |
@@ -56,7 +57,8 @@
 | **STAFF** | Meeting book करना (लंबाई चुनकर), My meetings, अपनी booking cancel करना, बुलाए जाने पर Acknowledge / On my way, meeting notes पढ़ना |
 | **OFFICER** | Queue, approve/decline, meeting start/complete, **notes लिखना**, availability, दूसरे officers के साथ booking |
 | **OFFICER (designated)** | ऊपर का सब कुछ + **एक या कई लोगों को तुरंत बुलाना** |
-| **RECEPTIONIST** | QR check-in, waiting, walk-in (**L Code ज़रूरी**) |
+| **RECEPTIONIST** | QR check-in, waiting, walk-in (**L Code ज़रूरी**), सभी officers के लिए |
+| **STAFF + PA** | Staff वाला सब कुछ + **Reception desk, सिर्फ अपने officer के लिए** (section 5A) |
 | **ADMIN** | Staff accounts / CSV import, officers, designated / approval rights, holidays, reports |
 
 ---
@@ -91,6 +93,31 @@
 | 6 | हर व्यक्ति को: **phone पर push** (स्क्रीन पर तब तक रहता है जब तक tap न करें, vibration के साथ), app में **लाल URGENT banner** (beep), **bell**, और email (अगर set है) | `meetingEvent("SUMMONED")` → `alertUser()` → `sendPush()` in `src/lib/push.ts` |
 | 7 | व्यक्ति **Acknowledge / On my way** दबाता है → officer को live दिखता है | `POST /api/appointments/:id/respond` |
 | 8 | Officer start → complete → notes | — |
+
+---
+
+## 5A. Officer का PA (Personal Assistant)
+
+PA अपने ID/password से login करता है। उसके menu में **Reception (PA · <Officer>)** आता है, और वो **सिर्फ अपने officer** के लिए reception का काम करता है।
+
+| PA क्या कर सकता है | PA क्या नहीं कर सकता |
+|---|---|
+| अपने officer के visitors का QR scan / token से check-in | दूसरे officer के visitor को check-in (error: "This visitor is for …") |
+| Waiting, No show, Cancel | Meeting start / complete, approve / decline (ये officer खुद करता है) |
+| अपने officer के लिए walk-in (L Code ज़रूरी) | दूसरे officer के लिए walk-in |
+| अपने officer की आज की queue देखना | Admin pages |
+| अपनी खुद की meetings book करना (normal staff की तरह) | |
+
+**PA कैसे बनाएँ:** Admin → **Officers** → officer खोलें → **Personal assistant (PA)** → staff member चुनें → **Make PA**। हटाने के लिए **Remove**। PA सिर्फ STAFF account हो सकता है, और एक व्यक्ति एक समय में एक ही officer का PA होता है। एक officer के कई PA हो सकते हैं।
+
+| हिस्सा | File |
+|---|---|
+| PA link (database) | `users.pa_officer_id` → `officer_profiles` |
+| कौन reception खोल सकता है / किस officer तक सीमित | `canUseReception()`, `receptionScope()` in `src/lib/auth.ts` |
+| Reception page (PA के लिए filtered) | `src/app/reception/page.tsx`, `layout.tsx` |
+| PA के status बदलने के rules | `changeStatus()` in `src/lib/booking.ts` (PA को receptionist वाले अधिकार, सिर्फ अपने officer पर) |
+| Check-in / walk-in की रोक | `src/app/api/check-in/route.ts`, `src/app/api/appointments/route.ts` |
+| Admin का PA card | `src/app/admin/officers/[id]/pa-manager.tsx` → `PATCH /api/staff/:id { paOfficerId }` |
 
 ---
 
@@ -179,7 +206,7 @@ File: `src/lib/jobs.ts`, server start होते ही `src/instrumentation.t
 
 | Table | क्या रखता है |
 |---|---|
-| `users` | Role, **L Code** (`employee_id`), designation, department, **must_change_password**, **failed_login_count**, **locked_until** |
+| `users` | Role, **L Code** (`employee_id`), designation, department, **pa_officer_id** (किस officer का PA), **must_change_password**, **failed_login_count**, **locked_until** |
 | `officer_profiles` | Slot length, **max_duration_min**, buffer, **requires_approval**, **can_summon**, … |
 | `appointments` | समय, status (**PENDING**, BOOKED, …, **DECLINED**), kind (SCHEDULED/IMMEDIATE), **group_id**, attendee_response, **notes**, **reminder_sent_at** |
 | `push_subscriptions` | हर user के phone/browser जिन पर alerts चालू हैं |

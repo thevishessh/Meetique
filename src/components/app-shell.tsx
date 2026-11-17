@@ -32,7 +32,7 @@ function navFor(user: SessionUser): { href: string; label: string }[] {
         book,
       ];
     case "STAFF":
-      return [mine, book];
+      return user.pa ? [mine, book, { href: "/reception", label: `Reception (PA · ${user.pa.officerName})` }] : [mine, book];
     default:
       return [{ href: "/reception", label: "Reception desk" }];
   }
@@ -50,7 +50,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
           <div className="ml-auto flex items-center gap-3">
             <Link href="/account" className="hidden text-right sm:block" title="My account / change password">
               <div className="text-sm font-medium leading-tight text-slate-900 hover:text-brand-700">{user.name}</div>
-              <div className="text-xs text-slate-500">{ROLE_LABEL[user.role]}</div>
+              <div className="text-xs text-slate-500">{user.pa ? `PA to ${user.pa.officerName}` : ROLE_LABEL[user.role]}</div>
             </Link>
             <NotificationBell />
             <LogoutButton />

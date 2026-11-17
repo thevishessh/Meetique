@@ -1,4 +1,4 @@
-import { requireApiUser } from "@/lib/auth";
+import { canUseReception, receptionScope, requireApiUser } from "@/lib/auth";
 import { fail, handle, ok, readJson } from "@/lib/api";
 import { checkInSchema } from "@/lib/validation";
 import { changeStatus, findToken } from "@/lib/booking";
@@ -8,7 +8,8 @@ import { STATUS_LABEL } from "@/lib/status";
 
 /** POST /api/check-in  body: { scan } — scanned QR URL, QR secret or token number */
 export const POST = handle(async (req: Request) => {
-  const user = await requireApiUser("ADMIN", "RECEPTIONIST", "OFFICER");
+  const user = await requireApiUser();
+  if (!canUseReception(user) && user.role !== "OFFICER") return fail(403, "FORBIDDEN", "You do not have access to the reception desk");
   const { scan } = checkInSchema.parse(await readJson(req));
   const t = await findToken(user.organizationId, parseScan(scan));
   if (!t) return fail(404, "INVALID_TOKEN", "Invalid token — not found for this organization");
@@ -29,6 +30,8 @@ export const POST = handle(async (req: Request) => {
     return fail(409, "WRONG_DAY", `Token ${t.tokenNumber} is for ${localDateOf(a.startAt, tz)}, not today`);
   }
   if (user.role === "OFFICER" && a.officerId !== user.officerId) return fail(403, "FORBIDDEN", "This visitor is for another officer");
+  const scope = receptionScope(user);
+  if (user.role === "STAFF" && a.officerId !== scope) return fail(403, "FORBIDDEN", `This visitor is for ${a.officer.user.name}, not ${user.pa?.officerName}`);
   const updated = await changeStatus(a.id, "CHECKED_IN", user, "QR check-in");
   return ok({ ...info, status: updated.status, message: "Checked in" });
 });

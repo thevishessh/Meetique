@@ -33,7 +33,14 @@ export default async function VerifyToken({ params }: { params: Promise<{ secret
   const staff = user && user.organizationId === a.organizationId ? user : null;
   const valid = t.isActive && !INVALID_FOR_ENTRY.includes(a.status);
   const isToday = localDateOf(a.startAt, tz) === todayIn(tz);
-  const actions = staff && (staff.role !== "OFFICER" || staff.officerId === a.officerId) ? nextActions(a.status, staff.role) : [];
+  const isPA = !!staff?.pa && staff.pa.officerId === a.officerId;
+  const actions = !staff
+    ? []
+    : isPA
+      ? nextActions(a.status, "RECEPTIONIST")
+      : staff.role === "STAFF" || (staff.role === "OFFICER" && staff.officerId !== a.officerId)
+        ? []
+        : nextActions(a.status, staff.role);
 
   return (
     <Shell staffHome={staff ? homeFor(staff.role) : undefined}>

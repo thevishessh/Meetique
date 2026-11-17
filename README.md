@@ -40,6 +40,7 @@ Open **http://localhost:3001** to reach the sign-in page.
 | Officers | `admissions@` · `exams@` · `accounts@` · `placements@` · `hostel@` · `dsw@` + `cuunnao.test` | `/officer` |
 | Receptionist | `frontoffice@cuunnao.test`, `reception@cuunnao.test` | `/reception` |
 | Staff (**sample**, for testing) | `faculty.cse@`, `faculty.mgmt@`, `library@` + `cuunnao.test` | `/me` |
+| Staff + **PA to the Director** (sample) | `director.pa@cuunnao.test` | `/me` (+ Reception for the Director) |
 
 > The `@cuunnao.test` emails, desk names and L Codes (`L9xxx`) are **placeholders**. Import the real staff list with **Admin → Staff → Bulk import (CSV)**, then deactivate the sample accounts.
 
@@ -54,7 +55,8 @@ Open **http://localhost:3001** to reach the sign-in page.
 | **STAFF** | Book a meeting with an officer, see **My meetings**, cancel own bookings, respond to immediate-meeting calls |
 | **OFFICER** | Live queue, start / complete meetings, set own availability, and book meetings with other officers |
 | **OFFICER (designated)** | Everything above, plus **Call immediate meeting** with anyone |
-| **RECEPTIONIST** | Scan QR tokens, check in, mark people waiting, register walk-ins |
+| **RECEPTIONIST** | Scan QR tokens, check in, mark people waiting, register walk-ins (all officers) |
+| **STAFF as PA** | Everything a staff member can do, plus the **Reception desk for their own officer only** (check-in, waiting, no-show, cancel, walk-ins). Assigned by an admin on the officer's page |
 | **ADMIN** | Staff accounts and CSV import, officers and designated rights, departments, holidays, reports, settings |
 
 ### Flow 1: Staff books a meeting
@@ -160,7 +162,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQ
 | `/t/<secret>` | anyone with the QR | Token verification (full details + check-in for staff) |
 | `/officer`, `/officer/appointments`, `/officer/availability` | officers | Queue, appointments, availability |
 | `/officer/summon` | designated officers | Call an immediate meeting |
-| `/reception` | receptionists, admins | QR scanner, check-in, walk-ins, live queue |
+| `/reception` | receptionists, admins, officers' PAs (own officer only) | QR scanner, check-in, walk-ins, live queue |
 | `/admin/*` | admins | Overview, appointments, officers, departments, staff, holidays, reports, settings |
 | `/account` | all signed-in users | Phone alerts on/off + test, change password |
 
@@ -224,5 +226,4 @@ The same code can run as a **public** visitor-booking portal for any organizatio
 - Google / Outlook calendar sync
 - PDF export of reports (CSV opens in Excel)
 - Campus logo upload
-- Director's PA / delegate access to another officer's queue
 - Audit-log viewer page (the log is recorded, not yet shown in the UI)

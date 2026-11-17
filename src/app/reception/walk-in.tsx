@@ -6,9 +6,9 @@ import { api, formData } from "@/components/client-api";
 import { Alert, Button, Card, CardHeader, Field, Input, Select } from "@/components/ui";
 import { VisitorExtraFields, type VisitorFieldConfig } from "@/components/visitor-extra-fields";
 
-export function WalkIn({ officers, today, fields }: { officers: { id: string; name: string }[]; today: string; fields: VisitorFieldConfig }) {
+export function WalkIn({ officers, today, fields, defaultOfficerId }: { officers: { id: string; name: string }[]; today: string; fields: VisitorFieldConfig; defaultOfficerId?: string }) {
   const router = useRouter();
-  const [officerId, setOfficerId] = useState("");
+  const [officerId, setOfficerId] = useState(defaultOfficerId ?? "");
   const [slot, setSlot] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: "green" | "rose"; text: React.ReactNode } | null>(null);
   const [busy, setBusy] = useState(false);

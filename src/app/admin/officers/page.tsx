@@ -12,7 +12,7 @@ export default async function OfficersPage() {
   const [officers, departments] = await Promise.all([
     prisma.officerProfile.findMany({
       where: { organizationId: user.organizationId },
-      include: { user: { select: { name: true, email: true, isActive: true, employeeId: true } }, department: true, workingHours: { orderBy: { weekday: "asc" } } },
+      include: { user: { select: { name: true, email: true, isActive: true, employeeId: true } }, department: true, workingHours: { orderBy: { weekday: "asc" } }, assistants: { select: { name: true } } },
       orderBy: { user: { name: "asc" } },
     }),
     prisma.department.findMany({ where: { organizationId: user.organizationId }, orderBy: { name: "asc" } }),
@@ -34,6 +34,7 @@ export default async function OfficersPage() {
                     <div className="text-xs text-slate-500">{o.department?.name ?? "No department"} · {o.user.email}{o.user.employeeId ? ` · L Code ${o.user.employeeId}` : " · ⚠ no L Code"}</div>
                   </div>
                   <div className="text-xs text-slate-500">{o.workingHours.length ? o.workingHours.map((h) => WD[h.weekday]).join(", ") : "No hours set"} · {o.slotDurationMin}m slots</div>
+                  {o.assistants.length > 0 && <Badge tone="slate">PA: {o.assistants.map((a) => a.name).join(", ")}</Badge>}
                   {o.canSummon && <Badge tone="rose">Can call meetings</Badge>}
                   {o.requiresApproval && <Badge tone="amber">Approves bookings</Badge>}
                   {!o.user.isActive ? <Badge tone="rose">Deactivated</Badge> : o.isBookable ? <Badge tone="green">Bookable</Badge> : <Badge tone="amber">Paused</Badge>}

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { requirePageUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { canUseReception, homeFor, receptionScope, requirePageUser } from "@/lib/auth";
 import { dayBounds, fmtLongDate, todayIn } from "@/lib/time";
 import { AppointmentTable, apptInclude } from "@/components/appointment-table";
 import { FilterSelect } from "@/components/date-nav";
@@ -11,8 +12,11 @@ import { WalkIn } from "./walk-in";
 export const dynamic = "force-dynamic";
 
 export default async function Reception({ searchParams }: { searchParams: Promise<{ officer?: string }> }) {
-  const user = await requirePageUser("RECEPTIONIST", "ADMIN");
-  const { officer } = await searchParams;
+  const user = await requirePageUser();
+  if (!canUseReception(user)) redirect(homeFor(user.role));
+  // A PA only ever sees their own officer; admins / receptionists can filter
+  const scope = receptionScope(user);
+  const officer = scope ?? (await searchParams).officer;
   const tz = user.org.timezone;
   const today = todayIn(tz);
   const { start, end } = dayBounds(today, tz);
@@ -23,7 +27,7 @@ export default async function Reception({ searchParams }: { searchParams: Promis
       orderBy: { startAt: "asc" },
     }),
     prisma.officerProfile.findMany({
-      where: { organizationId: user.organizationId, user: { isActive: true } },
+      where: { organizationId: user.organizationId, user: { isActive: true }, ...(scope ? { id: scope } : {}) },
       include: { user: { select: { name: true } } },
       orderBy: { user: { name: "asc" } },
     }),
@@ -34,11 +38,14 @@ export default async function Reception({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       <AutoRefresh seconds={15} />
-      <PageHeader title="Reception desk" description={`${fmtLongDate(new Date(), tz)} · scan QR tokens, check visitors in, register walk-ins`} />
+      <PageHeader
+        title={user.pa ? `Reception — ${user.pa.officerName}` : "Reception desk"}
+        description={`${fmtLongDate(new Date(), tz)} · ${user.pa ? "you are the PA: check in this officer's visitors and register walk-ins" : "scan QR tokens, check visitors in, register walk-ins"}`}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Scanner />
-        <WalkIn officers={officers.map((o) => ({ id: o.id, name: `${o.user.name} — ${o.designation}` }))} today={today} fields={org} />
+        <WalkIn officers={officers.map((o) => ({ id: o.id, name: `${o.user.name} — ${o.designation}` }))} today={today} fields={org} defaultOfficerId={scope ?? undefined} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -53,9 +60,9 @@ export default async function Reception({ searchParams }: { searchParams: Promis
         <CardHeader
           title="Today's queue"
           description="Updates every 15 seconds"
-          action={<FilterSelect name="officer" value={officer ?? ""} all="All officers" options={officers.map((o) => ({ value: o.id, label: o.user.name }))} />}
+          action={scope ? undefined : <FilterSelect name="officer" value={officer ?? ""} all="All officers" options={officers.map((o) => ({ value: o.id, label: o.user.name }))} />}
         />
-        <AppointmentTable rows={rows} tz={tz} role={user.role} empty="No appointments today" />
+        <AppointmentTable rows={rows} tz={tz} role={user.pa ? "RECEPTIONIST" : user.role} showOfficer={!scope} empty="No appointments today" />
       </Card>
     </div>
   );

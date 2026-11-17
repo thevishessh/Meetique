@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { api, formData } from "@/components/client-api";
 import { Alert, Badge, Button, Field, Input, Select, Textarea } from "@/components/ui";
 
-type S = { id: string; name: string; email: string; role: "ADMIN" | "OFFICER" | "RECEPTIONIST" | "STAFF"; isActive: boolean; employeeId?: string | null; jobTitle?: string | null; department?: { name: string } | null };
+type S = { id: string; name: string; email: string; role: "ADMIN" | "OFFICER" | "RECEPTIONIST" | "STAFF"; isActive: boolean; employeeId?: string | null; jobTitle?: string | null; department?: { name: string } | null; paFor?: { user: { name: string } } | null };
 const ROLE: Record<S["role"], { label: string; tone: "brand" | "slate" | "green" }> = {
   ADMIN: { label: "Admin", tone: "brand" },
   RECEPTIONIST: { label: "Receptionist", tone: "slate" },
@@ -44,6 +44,7 @@ export function StaffManager({ staff, me, departments }: { staff: S[]; me: strin
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={ROLE[s.role].tone}>{ROLE[s.role].label}</Badge>
+              {s.paFor && <Badge tone="amber">PA to {s.paFor.user.name}</Badge>}
               {!s.isActive && <Badge tone="rose">Deactivated</Badge>}
               <Button size="sm" variant="secondary" onClick={() => { const pw = prompt(`New password for ${s.name} (min 8 characters):`); if (pw) run(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { password: pw } }), "Password updated."); }}>Reset password</Button>
               {s.id !== me && (

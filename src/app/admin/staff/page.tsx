@@ -11,7 +11,7 @@ export default async function StaffPage() {
     prisma.user.findMany({
       where: { organizationId: user.organizationId, role: { in: ["ADMIN", "RECEPTIONIST", "STAFF"] } },
       orderBy: [{ role: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, email: true, role: true, isActive: true, employeeId: true, jobTitle: true, department: { select: { name: true } } },
+      select: { id: true, name: true, email: true, role: true, isActive: true, employeeId: true, jobTitle: true, department: { select: { name: true } }, paFor: { select: { user: { select: { name: true } } } } },
     }),
     prisma.department.findMany({ where: { organizationId: user.organizationId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);

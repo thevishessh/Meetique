@@ -124,6 +124,8 @@ const SAMPLE_STAFF = [
   { name: "Test Faculty (CSE)", email: "faculty.cse", employeeId: "L9201", jobTitle: "Assistant Professor", department: "Computer Science & Engineering" },
   { name: "Test Faculty (Management)", email: "faculty.mgmt", employeeId: "L9202", jobTitle: "Associate Professor", department: "Management Studies" },
   { name: "Test Staff (Library)", email: "library", employeeId: "L9203", jobTitle: "Librarian", department: "Central Library" },
+  // PA: gets the Reception desk for the Director only
+  { name: "Director's PA (sample)", email: "director.pa", employeeId: "L9204", jobTitle: "Personal Assistant", department: "Office of the Campus Director", paOf: "director" },
 ];
 
 const STAFF = [
@@ -185,10 +187,11 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
     });
   }
 
-  for (const st of SAMPLE_STAFF) {
+  for (const st of SAMPLE_STAFF as (typeof SAMPLE_STAFF[number] & { paOf?: string })[]) {
+    const paOfficer = st.paOf ? await prisma.officerProfile.findFirst({ where: { user: { email: email(st.paOf) } } }) : null;
     const dept = (await prisma.department.findFirst({ where: { organizationId: org.id, name: st.department } })) ?? (await prisma.department.create({ data: { organizationId: org.id, name: st.department } }));
     await prisma.user.create({
-      data: { organizationId: org.id, name: st.name, email: email(st.email), passwordHash: hash, role: "STAFF", employeeId: st.employeeId, jobTitle: st.jobTitle, departmentId: dept.id },
+      data: { organizationId: org.id, name: st.name, email: email(st.email), passwordHash: hash, role: "STAFF", employeeId: st.employeeId, jobTitle: st.jobTitle, departmentId: dept.id, paOfficerId: paOfficer?.id ?? null },
     });
   }
 
@@ -197,5 +200,5 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
   console.log(`Logins (initial password: ${password} — everyone must change it at first sign-in):`);
   for (const s of STAFF) console.log(`  ${s.role.padEnd(13)} ${email(s.email).padEnd(28)} L Code ${s.lCode}`);
   for (const d of DESKS) console.log(`  OFFICER       ${email(d.email).padEnd(28)} ${d.designation}${d.canSummon ? "  (can call immediate meetings)" : ""}${d.requiresApproval ? "  (approves bookings)" : ""}`);
-  for (const st of SAMPLE_STAFF) console.log(`  STAFF         ${email(st.email).padEnd(28)} ${st.jobTitle} (sample)`);
+  for (const st of SAMPLE_STAFF as (typeof SAMPLE_STAFF[number] & { paOf?: string })[]) console.log(`  STAFF         ${email(st.email).padEnd(28)} ${st.jobTitle} (sample)${st.paOf ? `  → PA of ${email(st.paOf)}` : ""}`);
 }

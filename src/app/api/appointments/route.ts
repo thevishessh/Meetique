@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getUser, requireApiUser } from "@/lib/auth";
+import { canUseReception, getUser, receptionScope, requireApiUser } from "@/lib/auth";
 import { handle, ok, readJson } from "@/lib/api";
 import { bookingSchema } from "@/lib/validation";
 import { bookAppointment } from "@/lib/booking";
@@ -20,7 +20,9 @@ export const POST = handle(async (req: Request) => {
 
   if (d.walkIn) {
     // Walk-in registered at reception: name + mobile + L Code from the form
-    actor = await requireApiUser("ADMIN", "RECEPTIONIST", "OFFICER");
+    actor = await requireApiUser();
+    if (!canUseReception(actor) && actor.role !== "OFFICER") throw new AppError("FORBIDDEN", "You do not have access to the reception desk", 403);
+    if (actor.role === "STAFF" && d.officerId !== receptionScope(actor)) throw new AppError("FORBIDDEN", `As PA you can register walk-ins only for ${actor.pa?.officerName}`, 403);
     if (!d.name || !d.phone) throw new AppError("VALIDATION", "Name and mobile number are required", 422);
     if (!d.lCode) throw new AppError("VALIDATION", "L Code is required", 422);
     const staff = await prisma.user.findFirst({ where: { organizationId: actor.organizationId, employeeId: d.lCode, isActive: true } });

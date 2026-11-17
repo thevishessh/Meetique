@@ -90,6 +90,8 @@ export const staffCreateSchema = z.object({
 export const staffImportSchema = z.object({ csv: z.string().min(3).max(500_000), password: z.string().min(8, "Initial password must be at least 8 characters") });
 
 export const staffUpdateSchema = z.object({
+  /** Make this staff member the PA of an officer (null = remove) */
+  paOfficerId: z.string().min(1).nullable().optional(),
   employeeId: lCode.optional(),
   jobTitle: optText(80),
   phone: optText(20),
