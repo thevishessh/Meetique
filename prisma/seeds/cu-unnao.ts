@@ -32,7 +32,7 @@ const ORG = {
   referenceLabel: null as string | null,
 };
 
-const EMAIL_DOMAIN = "cuunnao.test"; // TODO: replace with the campus email domain
+const EMAIL_DOMAIN = "culko.test"; // TODO: replace with the campus email domain
 
 /** Weekly hours (ISO weekday: 1 = Monday … 6 = Saturday). Sunday closed. */
 const WEEKDAY_HOURS = { startTime: "09:30", endTime: "16:30", breakStart: "13:00", breakEnd: "14:00" };
