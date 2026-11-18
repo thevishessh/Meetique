@@ -1,6 +1,6 @@
 /**
  * Demo data: ABC University (timezone Asia/Kolkata, token prefix ABC).
- * Test logins (all password: Demo@1234):
+ * Test logins (password: CLIENT_INITIAL_PASSWORD from .env):
  *   admin@abc.test      — Organization admin
  *   registrar@abc.test  — Officer: Registrar
  *   hr@abc.test         — Officer: HR Manager
@@ -15,10 +15,11 @@ import type { PrismaClient } from "../../src/generated/prisma/client";
 import type { AppointmentStatus } from "../../src/generated/prisma/enums";
 
 const secret = (n: number) => randomBytes(n).toString("base64url");
-const PASSWORD = "Demo@1234";
+const PASSWORD = process.env.CLIENT_INITIAL_PASSWORD ?? "";
 const TZ = "Asia/Kolkata";
 
 async function main(prisma: PrismaClient) {
+  if (PASSWORD.length < 8) throw new Error("Set CLIENT_INITIAL_PASSWORD (8+ characters) in .env before seeding");
   const existing = await prisma.organization.findUnique({ where: { slug: "abc-university" } });
   if (existing) {
     console.log("Demo organization already exists — skipping. Run `npm run db:reset` to start fresh.");
@@ -141,7 +142,7 @@ async function main(prisma: PrismaClient) {
   await prisma.tokenCounter.create({ data: { organizationId: org.id, year: now.year, lastValue: seq } });
 
   console.log(`Seeded "${org.name}" with ${seq} appointments.`);
-  console.log(`Logins (password ${PASSWORD}): admin@abc.test, registrar@abc.test, hr@abc.test, exam@abc.test, reception@abc.test`);
+  console.log(`Logins (password from CLIENT_INITIAL_PASSWORD): admin@abc.test, registrar@abc.test, hr@abc.test, exam@abc.test, reception@abc.test`);
 }
 
 export default main;

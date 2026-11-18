@@ -104,7 +104,7 @@ export default function BookingWizard({
                 <Field label="Purpose of visit" className="sm:col-span-2"><Textarea name="purpose" rows={3} maxLength={300} placeholder="e.g. Transcript verification" /></Field>
               </div>
             )}
-            {requiresApproval && <Alert tone="amber">This officer approves meetings personally. Your request will show as <b>Awaiting approval</b> until they accept it — you'll get an alert.</Alert>}
+            {requiresApproval && <Alert tone="amber">This officer approves meetings personally. Your request will show as <b>Awaiting approval</b> until they accept it. You’ll get an alert either way.</Alert>}
             <Button size="lg" className="w-full" disabled={busy}>{busy ? "Confirming…" : requiresApproval ? "Send meeting request" : "Confirm booking"}</Button>
           </form>
         )}

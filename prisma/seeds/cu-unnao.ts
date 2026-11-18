@@ -12,7 +12,7 @@
  * (names, emails, hours, address, holiday calendar) — either edit this file before
  * the first seed, or change them later from the admin panel.
  *
- * Initial password for every account: CLIENT_INITIAL_PASSWORD from .env (default below).
+ * Initial password for every account: CLIENT_INITIAL_PASSWORD from .env (required, never printed).
  * Everyone is forced to set their own password at first sign-in.
  * L Codes below (L9xxx) are PLACEHOLDERS — replace with the real employee codes.
  */
@@ -147,7 +147,8 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
     console.log(`"${ORG.name}" already exists — skipping. Use \`npm run db:reset\` to start fresh.`);
     return;
   }
-  const password = process.env.CLIENT_INITIAL_PASSWORD || "CUUnnao@2026";
+  const password = process.env.CLIENT_INITIAL_PASSWORD;
+  if (!password || password.length < 8) throw new Error("Set CLIENT_INITIAL_PASSWORD (8+ characters) in .env before seeding");
   const hash = await bcrypt.hash(password, 10);
   const email = (local: string) => `${local}@${EMAIL_DOMAIN}`;
 
@@ -197,7 +198,7 @@ export default async function seedCuUnnao(prisma: PrismaClient) {
 
   console.log(`Created "${ORG.name}" — booking portal /o/${ORG.slug}, token prefix ${ORG.shortCode}`);
   console.log(`${DESKS.length} departments/desks, ${STAFF.length} staff accounts, ${HOLIDAYS.length} holidays.`);
-  console.log(`Logins (initial password: ${password} — everyone must change it at first sign-in):`);
+  console.log("Logins (initial password: CLIENT_INITIAL_PASSWORD from .env; everyone must change it at first sign-in):");
   for (const s of STAFF) console.log(`  ${s.role.padEnd(13)} ${email(s.email).padEnd(28)} L Code ${s.lCode}`);
   for (const d of DESKS) console.log(`  OFFICER       ${email(d.email).padEnd(28)} ${d.designation}${d.canSummon ? "  (can call immediate meetings)" : ""}${d.requiresApproval ? "  (approves bookings)" : ""}`);
   for (const st of SAMPLE_STAFF as (typeof SAMPLE_STAFF[number] & { paOf?: string })[]) console.log(`  STAFF         ${email(st.email).padEnd(28)} ${st.jobTitle} (sample)${st.paOf ? `  → PA of ${email(st.paOf)}` : ""}`);

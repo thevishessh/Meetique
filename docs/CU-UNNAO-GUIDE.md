@@ -22,17 +22,7 @@
 
 ## 2. Login
 
-**Password:** seed से बने सब accounts का शुरुआती password `CUUnnao@2026` है।
-
-| Email | Role | L Code (placeholder) |
-|---|---|---|
-| `admin@cuunnao.test` | Admin | L9001 |
-| `frontoffice@cuunnao.test`, `reception@cuunnao.test` | Receptionist | L9002, L9003 |
-| `director@cuunnao.test` | Officer: **designated + approves bookings** | L9108 |
-| `registrar@cuunnao.test` | Officer: **designated** | L9102 |
-| `admissions@` `exams@` `accounts@` `placements@` `hostel@` `dsw@` + `cuunnao.test` | Officers | L9101, L9103–L9107 |
-| `faculty.cse@`, `faculty.mgmt@`, `library@` + `cuunnao.test` | Staff (**sample**) | L9201–L9203 |
-| `director.pa@cuunnao.test` | Staff + **Director का PA** (sample) | L9204 |
+Seed से बने accounts के emails और शुरुआती password इस guide में नहीं लिखे गए हैं। Password `.env` की `CLIENT_INITIAL_PASSWORD` से आता है, और accounts की list `npm run db:seed` चलाने वाले को terminal में दिखती है। ये जानकारी सिर्फ project owner अलग से (सुरक्षित तरीके से) देता है। हर व्यक्ति पहली login पर अपना password बनाता है।
 
 ### Login की security (नई)
 | Rule | कहाँ |

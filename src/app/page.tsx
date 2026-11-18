@@ -42,10 +42,9 @@ export default async function Home() {
 
       <main className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
         <section className="py-14 text-center sm:py-20">
-          <p className="text-sm font-semibold uppercase tracking-wider text-ink">Appointments · QR tokens · Queues</p>
           <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-semibold text-ink sm:text-5xl">{APP_TAGLINE}</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-ink-2">
-            {APP_NAME} lets universities, hospitals, offices and professionals publish officer availability, take bookings, issue QR tokens and run the reception queue — from one place.
+            {APP_NAME} lets universities, hospitals, offices and professionals publish officer availability, take bookings, issue QR tokens and and run the reception queue.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {ALLOW_ORG_SIGNUP && <ButtonLink href="/register" size="lg">Create your organization</ButtonLink>}
@@ -68,7 +67,7 @@ export default async function Home() {
             <div className="mt-4 flex flex-wrap gap-3">
               {orgs.map((o) => (
                 <Link key={o.slug} href={`/o/${o.slug}`} className="rounded-xl bg-paper px-4 py-3 text-sm font-medium text-ink ring-1 ring-rule hover:ring-ink">
-                  {o.name} →
+                  {o.name}
                 </Link>
               ))}
             </div>

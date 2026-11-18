@@ -3,6 +3,9 @@
  * axes: light/grotesk-sans/chromatic-teal · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V3 · weakest: V, an admin tool shares its shell with every other tool; the ruled queue with state pills carries the identity instead of stat cards */
 /* Hallmark · waive 22 · ink and greys at zero chroma, the teal is the only hue · the meeting queue reads like a notice in plain black ink, so teal alone marks who is in */
+/* Hallmark · dismissed F4 · teal is the state colour for start and approve, never a second primary; each screen has one ink primary */
+/* Hallmark · reworded "No device received it — try turning alerts off and on again." to "No device received it. Turn alerts off and on again." · 19 names the dash; the push test handler is unchanged */
+/* Hallmark · dropped { <form className="flex flex-wrap items-end gap-2"> · not a link: the reports date-range form, still there with the same fields and action, under new classes */
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./base.css" layer(base);

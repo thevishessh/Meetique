@@ -85,7 +85,7 @@ export function Scanner() {
       <CardHeader title="Scan QR token" description="Point the camera at the visitor's QR, or enter the token number." action={on ? <Button size="sm" variant="secondary" onClick={stop}>Stop camera</Button> : <Button size="sm" onClick={start}>Start camera</Button>} />
       <div className="space-y-4 p-5">
         <div className={cx("relative overflow-hidden rounded-xl bg-ink", on ? "aspect-video" : "hidden")}>
-          <video ref={video} className="h-full w-full object-cover" muted playsInline aria-label="Camera view for scanning QR tokens" />
+          <video ref={video} className="h-full w-full object-cover" poster="/scan-poster.svg" preload="none" muted playsInline aria-label="Camera view for scanning QR tokens" />
           <div className="pointer-events-none absolute inset-0 m-auto h-40 w-40 rounded-card border-2 border-paper" />
         </div>
         <canvas ref={canvas} className="hidden" aria-hidden="true" />
