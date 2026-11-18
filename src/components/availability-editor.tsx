@@ -73,17 +73,18 @@ export function AvailabilityEditor({ officerId, hours, settings, blocks, timezon
               </label>
               {d.enabled ? (
                 <>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Input type="time" value={d.startTime} onChange={(e) => upd(i, { startTime: e.target.value })} className="h-9 w-32" />
+                  <div className="flex w-full items-center gap-2 text-sm sm:w-auto">
+                    <span className="w-10 shrink-0 text-muted sm:hidden">Hours</span>
+                    <Input type="time" value={d.startTime} onChange={(e) => upd(i, { startTime: e.target.value })} className="h-9 min-w-0 flex-1 sm:w-32 sm:flex-none" />
                     <span className="text-muted">to</span>
-                    <Input type="time" value={d.endTime} onChange={(e) => upd(i, { endTime: e.target.value })} className="h-9 w-32" />
+                    <Input type="time" value={d.endTime} onChange={(e) => upd(i, { endTime: e.target.value })} className="h-9 min-w-0 flex-1 sm:w-32 sm:flex-none" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <span className="text-muted">Break</span>
-                    <Input type="time" value={d.breakStart} onChange={(e) => upd(i, { breakStart: e.target.value })} className="h-9 w-32" />
+                  <div className="flex w-full items-center gap-2 text-sm sm:w-auto">
+                    <span className="w-10 shrink-0 text-muted sm:w-auto">Break</span>
+                    <Input type="time" value={d.breakStart} onChange={(e) => upd(i, { breakStart: e.target.value })} className="h-9 min-w-0 flex-1 sm:w-32 sm:flex-none" />
                     <span className="text-muted">to</span>
-                    <Input type="time" value={d.breakEnd} onChange={(e) => upd(i, { breakEnd: e.target.value })} className="h-9 w-32" />
-                    {(d.breakStart || d.breakEnd) && <button className="text-xs text-muted hover:text-error" onClick={() => upd(i, { breakStart: "", breakEnd: "" })}>clear</button>}
+                    <Input type="time" value={d.breakEnd} onChange={(e) => upd(i, { breakEnd: e.target.value })} className="h-9 min-w-0 flex-1 sm:w-32 sm:flex-none" />
+                    {(d.breakStart || d.breakEnd) && <button type="button" className="shrink-0 text-xs text-muted underline hover:text-ink" onClick={() => upd(i, { breakStart: "", breakEnd: "" })}>clear</button>}
                   </div>
                   <Badge tone="brand">{perDay(d)} start times</Badge>
                 </>

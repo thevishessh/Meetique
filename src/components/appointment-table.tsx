@@ -27,7 +27,37 @@ export type ApptRow = {
 export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true, empty = "No appointments" }: { rows: ApptRow[]; tz: string; role: Role; officerId?: string | null; showOfficer?: boolean; empty?: string }) {
   if (!rows.length) return <Empty title={empty} />;
   return (
-    <div className="overflow-x-auto">
+    <>
+    {/* Phones: each appointment as a ruled block, the time and state on top, actions at the bottom */}
+    <ul className="divide-y divide-rule sm:hidden">
+      {rows.map((r) => {
+        const actions = role === "OFFICER" && r.officerId !== officerId ? [] : nextActions(r.status, role);
+        const t = r.tokens[0];
+        return (
+          <li key={r.id} className="space-y-2 px-5 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <span className="num font-semibold text-ink">{fmtRange(r.startAt, r.endAt, tz)}</span>
+              <StatusBadge status={r.status} />
+            </div>
+            <div>
+              <div className="font-semibold text-ink">{r.visitor.name}</div>
+              <div className="text-sm text-muted">
+                {[showOfficer ? r.officer.user.name : null, r.visitor.user?.employeeId && `L Code ${r.visitor.user.employeeId}`, r.visitor.phone].filter(Boolean).join(", ")}
+              </div>
+              {r.purpose && <div className="mt-1 text-sm text-ink-2">“{r.purpose}”</div>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {t && <Link href={`/t/${t.qrSecret}`} className="link token-no text-sm">{t.tokenNumber}</Link>}
+              {r.source === "WALK_IN" && <Badge tone="amber">Walk-in</Badge>}
+              {r.kind === "IMMEDIATE" && <Badge tone="rose">Immediate</Badge>}
+              <ResponseBadge r={r} />
+            </div>
+            {actions.length > 0 && <StatusActions id={r.id} actions={actions} />}
+          </li>
+        );
+      })}
+    </ul>
+    <div className="hidden overflow-x-auto sm:block">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-ink text-left text-sm text-muted">
@@ -73,6 +103,7 @@ export function AppointmentTable({ rows, tz, role, officerId, showOfficer = true
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

@@ -22,13 +22,15 @@ export const POST = handle(async (req: Request) => {
   const d = workingHoursSchema.parse(await readJson(req));
   const officer = await resolveOfficer(user, d.officerId);
 
+  const DAY = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   for (const day of d.days.filter((x) => x.enabled)) {
+    const name = DAY[day.weekday];
     const s = hmToMinutes(day.startTime), e = hmToMinutes(day.endTime);
-    if (e <= s) return fail(422, "VALIDATION", `Day ${day.weekday}: end time must be after start time`);
+    if (e <= s) return fail(422, "VALIDATION", `${name}: the end time (${day.endTime}) must be after the start time (${day.startTime}).`);
     if (day.breakStart || day.breakEnd) {
-      if (!day.breakStart || !day.breakEnd) return fail(422, "VALIDATION", `Day ${day.weekday}: set both break start and end`);
+      if (!day.breakStart || !day.breakEnd) return fail(422, "VALIDATION", `${name}: fill in both break times, or clear the break.`);
       const bs = hmToMinutes(day.breakStart), be = hmToMinutes(day.breakEnd);
-      if (be <= bs || bs < s || be > e) return fail(422, "VALIDATION", `Day ${day.weekday}: break must be inside working hours`);
+      if (be <= bs || bs < s || be > e) return fail(422, "VALIDATION", `${name}: the break (${day.breakStart} to ${day.breakEnd}) must be inside the working hours (${day.startTime} to ${day.endTime}). Change the break or press "clear".`);
     }
   }
 

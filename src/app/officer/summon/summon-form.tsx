@@ -80,7 +80,7 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
       >
         {msg && <div className="lg:col-span-2"><Alert tone={msg.tone}>{msg.text}</Alert></div>}
 
-        <div>
+        <div className="min-w-0">
           <Field label="Who do you want to meet? (select one or more)">
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, designation, department or L Code" />
           </Field>
@@ -103,7 +103,7 @@ export function SummonForm({ people, defaultDuration, today, location }: { peopl
           </ul>
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div className="rounded-lg bg-paper-2 px-4 py-3 text-sm">
             {picked.length ? (
               <>
