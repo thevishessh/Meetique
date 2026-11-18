@@ -108,11 +108,11 @@ const DESKS: Desk[] = [
     bio: "Student grievances, clubs and societies, discipline and student wellbeing.",
   },
   {
-    department: "Office of the Campus Director", description: "Meetings with the Campus Director (by appointment only)",
-    name: "Director's Office", designation: "Campus Director", email: "director", lCode: "L9108", maxDurationMin: 60, requiresApproval: true, location: "Administrative Block, First Floor", canSummon: true,
+    department: "Office of the Vice Chancellor", description: "Meetings with the Vice Chancellor (by appointment only)",
+    name: "VC Office", designation: "Vice Chancellor", email: "vc", lCode: "L9108", maxDurationMin: 60, requiresApproval: true, location: "Administrative Block, First Floor", canSummon: true,
     slotDurationMin: 30, bufferMin: 15, capacityPerSlot: 1, minNoticeMin: 1440, advanceBookingDays: 14, allowSameDay: false, maxPerDay: 4,
     hours: { weekdays: [1, 2, 3, 4, 5], startTime: "11:00", endTime: "13:00", breakStart: null, breakEnd: null },
-    bio: "Meetings with the Campus Director. Book at least one day in advance.",
+    bio: "Meetings with the Vice Chancellor. Book at least one day in advance.",
   },
 ];
 
@@ -124,8 +124,8 @@ const SAMPLE_STAFF = [
   { name: "Test Faculty (CSE)", email: "faculty.cse", employeeId: "L9201", jobTitle: "Assistant Professor", department: "Computer Science & Engineering" },
   { name: "Test Faculty (Management)", email: "faculty.mgmt", employeeId: "L9202", jobTitle: "Associate Professor", department: "Management Studies" },
   { name: "Test Staff (Library)", email: "library", employeeId: "L9203", jobTitle: "Librarian", department: "Central Library" },
-  // PA: gets the Reception desk for the Director only
-  { name: "Director's PA (sample)", email: "director.pa", employeeId: "L9204", jobTitle: "Personal Assistant", department: "Office of the Campus Director", paOf: "director" },
+  // PA: gets the Reception desk for the VC Office only
+  { name: "VC's PA (sample)", email: "vc.pa", employeeId: "L9204", jobTitle: "Personal Assistant", department: "Office of the Vice Chancellor", paOf: "vc" },
 ];
 
 const STAFF = [

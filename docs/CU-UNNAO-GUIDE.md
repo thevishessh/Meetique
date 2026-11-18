@@ -2,7 +2,7 @@
 
 यह guide बताती है कि **CU Meetings** में कौन-सी चीज़ कहाँ से हो रही है: कौन किस page पर क्या करता है, कौन-सी file वो काम करती है, data कहाँ save होता है, और कोई चीज़ बदलनी हो तो कहाँ बदलें।
 
-**यह internal system है:** बाहर के लोग booking नहीं कर सकते। University staff अपने login से officers के साथ meeting book करते हैं। **Designated officers** (Director, Registrar) एक या कई लोगों को **तुरंत meeting** के लिए बुला सकते हैं, और उन्हें screen और **phone** दोनों पर alert जाता है।
+**यह internal system है:** बाहर के लोग booking नहीं कर सकते। University staff अपने login से officers के साथ meeting book करते हैं। **Designated officers** (VC, Registrar) एक या कई लोगों को **तुरंत meeting** के लिए बुला सकते हैं, और उन्हें screen और **phone** दोनों पर alert जाता है।
 
 ---
 
@@ -62,7 +62,7 @@ Seed से बने accounts के emails और शुरुआती passwo
 | 3 | Date + समय → Agenda। नाम/email profile से आते हैं। **L Code profile में नहीं है, तो यहाँ भरना ज़रूरी** (एक बार, profile में save हो जाता है) | `booking-wizard.tsx`, `src/app/api/appointments/route.ts` |
 | 4 | Confirm → token + QR | `bookAppointment()` in `src/lib/booking.ts` |
 | 5 | **Officer को alert** (bell + phone + email): "New meeting: …" | `meetingEvent("BOOKED")` in `src/lib/alerts.ts` |
-| 6 | Officer **approval** वाला हो (जैसे Director) → status **Awaiting approval**, slot hold रहता है, QR नहीं बनता। Officer **Approve / Decline** → staff को alert | `requiresApproval`, statuses `PENDING` / `DECLINED` in `src/lib/status.ts` |
+| 6 | Officer **approval** वाला हो (जैसे VC Office) → status **Awaiting approval**, slot hold रहता है, QR नहीं बनता। Officer **Approve / Decline** → staff को alert | `requiresApproval`, statuses `PENDING` / `DECLINED` in `src/lib/status.ts` |
 | 7 | **15 मिनट पहले reminder** → staff + officer | `src/lib/jobs.ts` |
 | 8 | Check-in → Start → Complete → **officer notes लिखता है** → staff को My meetings में दिखते हैं | `src/components/notes-editor.tsx`, `PUT /api/appointments/:id/notes` |
 | 9 | किसी ने check-in नहीं किया → meeting खत्म होने के **30 मिनट बाद अपने आप No Show**। Approval नहीं मिली और समय निकल गया → अपने आप **Declined** | `src/lib/jobs.ts` |
@@ -143,7 +143,7 @@ PA अपने ID/password से login करता है। उसके men
 | **Buffer after each meeting** | हर meeting के बाद इतने मिनट खाली रखे जाते हैं |
 | **Bookings need my approval** | Booking पहले "Awaiting approval" में जाती है |
 
-अभी की limits: Admissions 45, Registrar 60, Exams 60, Fee Counter 30, Placement 90, Hostel 45, DSW 60, Director 60 (approval के साथ)।
+अभी की limits: Admissions 45, Registrar 60, Exams 60, Fee Counter 30, Placement 90, Hostel 45, DSW 60, VC Office 60 (approval के साथ)।
 
 ---
 
