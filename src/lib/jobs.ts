@@ -14,12 +14,14 @@ export const NO_SHOW_GRACE_MIN = 30; // a BOOKED meeting with no check-in this l
  *  4. Old notifications / used reset links cleaned up
  * Every step "claims" rows with a conditional update, so two servers can't double-send.
  */
-export async function runJobs(now = new Date()) {
+export async function runJobs(now = new Date(), opts: { organizationId?: string } = {}) {
+  // Optional scope (used by the tests); the server runs it for every organization
+  const org = opts.organizationId ? { organizationId: opts.organizationId } : {};
   const result = { reminders: 0, noShows: 0, expired: 0 };
 
   // 1. Reminders
   const soon = await prisma.appointment.findMany({
-    where: { status: "BOOKED", reminderSentAt: null, startAt: { gt: now, lte: new Date(now.getTime() + REMINDER_MIN * 60_000) } },
+    where: { ...org, status: "BOOKED", reminderSentAt: null, startAt: { gt: now, lte: new Date(now.getTime() + REMINDER_MIN * 60_000) } },
     select: { id: true, createdAt: true, startAt: true },
   });
   for (const a of soon) {
@@ -33,7 +35,7 @@ export async function runJobs(now = new Date()) {
 
   // 2. Auto no-show
   const missed = await prisma.appointment.findMany({
-    where: { status: "BOOKED", endAt: { lt: new Date(now.getTime() - NO_SHOW_GRACE_MIN * 60_000) } },
+    where: { ...org, status: "BOOKED", endAt: { lt: new Date(now.getTime() - NO_SHOW_GRACE_MIN * 60_000) } },
     select: { id: true },
     take: 200,
   });
@@ -47,7 +49,7 @@ export async function runJobs(now = new Date()) {
   }
 
   // 3. Unanswered approval requests
-  const stale = await prisma.appointment.findMany({ where: { status: "PENDING", startAt: { lt: now } }, select: { id: true }, take: 200 });
+  const stale = await prisma.appointment.findMany({ where: { ...org, status: "PENDING", startAt: { lt: now } }, select: { id: true }, take: 200 });
   for (const a of stale) {
     try {
       await changeStatus(a.id, "DECLINED", null, "Automatic: not approved before the meeting time");
@@ -58,7 +60,8 @@ export async function runJobs(now = new Date()) {
     }
   }
 
-  // 4. Cleanup
+  // 4. Cleanup (whole database only)
+  if (opts.organizationId) return result;
   await prisma.userNotification.deleteMany({ where: { createdAt: { lt: new Date(now.getTime() - 60 * 864e5) } } });
   await prisma.passwordReset.deleteMany({ where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { not: null } }] } });
   return result;

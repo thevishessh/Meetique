@@ -16,6 +16,7 @@ import { getDaySlots, allowedDurations } from "../src/lib/slots";
 import { bookAppointment, changeStatus, findConflicts, respondToMeeting, rescheduleAppointment, saveNotes, summonMeeting } from "../src/lib/booking";
 import { nextActions, TRANSITIONS } from "../src/lib/status";
 import type { SessionUser } from "../src/lib/auth";
+import { runJobs } from "../src/lib/jobs";
 
 const TZ = "Asia/Kolkata";
 const tag = randomBytes(4).toString("hex");
@@ -242,5 +243,33 @@ describe("immediate meetings", () => {
     const id = r.created[0].appointmentId;
     await assert.rejects(respondToMeeting(id, await session("staff1"), "ON_MY_WAY"), /not found/);
     assert.equal((await respondToMeeting(id, await session("staff2"), "ON_MY_WAY")).attendeeResponse, "ON_MY_WAY");
+  });
+});
+
+describe("background job", () => {
+  test("reminder 15 minutes ahead, auto no-show, auto-decline of a stale request", async () => {
+    const now = new Date();
+    const mk = (officer: string, status: "BOOKED" | "PENDING", startMin: number, endMin: number, purpose: string) =>
+      bookAppointment({ officerId: officerIds[officer], startAt: at(officer === "director" ? "15:00" : "15:15"), name: "", attendeeUserId: ids.staff1, purpose }).then(async (r) => {
+        await prisma.appointment.update({
+          where: { id: r.appointment.id },
+          data: { status, startAt: new Date(now.getTime() + startMin * 60_000), endAt: new Date(now.getTime() + endMin * 60_000), createdAt: new Date(now.getTime() - 3_600_000) },
+        });
+        return r.appointment.id;
+      });
+    const soon = await mk("hostel", "BOOKED", 10, 25, "soon");
+    const missed = await mk("registrar", "BOOKED", -180, -150, "missed");
+    const stale = await mk("director", "PENDING", -5, 10, "stale");
+
+    const r = await runJobs(now, { organizationId: orgId });
+    assert.deepEqual(r, { reminders: 1, noShows: 1, expired: 1 });
+    const get = (id: string) => prisma.appointment.findUniqueOrThrow({ where: { id } });
+    assert.ok((await get(soon)).reminderSentAt);
+    assert.equal((await get(missed)).status, "NO_SHOW");
+    assert.equal((await get(stale)).status, "DECLINED");
+    const bell = await prisma.userNotification.findMany({ where: { userId: ids.staff1 } });
+    assert.ok(bell.some((n) => n.title === "Meeting in 15 minutes"));
+
+    assert.deepEqual(await runJobs(now, { organizationId: orgId }), { reminders: 0, noShows: 0, expired: 0 }, "a second run repeats nothing");
   });
 });

@@ -78,7 +78,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-display text-ink">{title}</h1>
+        <h1 className="max-w-[32ch] text-display text-ink">{title}</h1>
         {description && <div className="mt-2 text-sm text-muted">{description}</div>}
       </div>
       {action}
