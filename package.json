@@ -55,6 +55,6 @@
     "prisma@7.10.1": true
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }
