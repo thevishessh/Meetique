@@ -36,6 +36,8 @@ All settings live in `.env`; `.env.example` lists every key. Never commit `.env`
 
 ## Production
 
+Free hosting on Vercel + Neon, step by step: `docs/DEPLOY-VERCEL.md`.
+
 Serve over HTTPS on your own domain, generate fresh secrets and keys for the server, and back up the database daily. The step-by-step checklist is in the internal guide.
 
 ## Documentation

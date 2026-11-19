@@ -4,6 +4,7 @@ import { Card, Logo } from "@/components/ui";
 import { ALLOW_ORG_SIGNUP, TIMEZONES } from "@/lib/config";
 import RegisterForm from "./register-form";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Register organization" };
 
 export default function RegisterPage() {

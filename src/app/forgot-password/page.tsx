@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthLayout } from "@/components/auth-layout";
 import { ForgotForm } from "@/components/auth-forms";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Forgot password" };
 
 export default function ForgotPasswordPage() {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthLayout } from "@/components/auth-layout";
 import { ResetForm } from "@/components/auth-forms";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Set a new password", robots: { index: false } };
 
 export default async function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {

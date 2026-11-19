@@ -14,7 +14,8 @@
     "db:reset": "prisma migrate reset --force && prisma db seed",
     "test:concurrency": "tsx scripts/concurrency-test.ts",
     "postinstall": "prisma generate",
-    "test": "tsx --conditions=react-server --test tests/meetings.test.ts tests/api.test.ts"
+    "test": "tsx --conditions=react-server --test tests/meetings.test.ts tests/api.test.ts",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -52,5 +53,8 @@
     "@prisma/engines@7.10.1": true,
     "esbuild@0.28.2": true,
     "prisma@7.10.1": true
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
