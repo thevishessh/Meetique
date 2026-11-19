@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getUser, hashPassword, requireApiUser } from "@/lib/auth";
+import { hashPassword, requireApiUser } from "@/lib/auth";
+import { readableOrg } from "@/lib/org-access";
 import { fail, handle, ok, readJson } from "@/lib/api";
 import { officerCreateSchema } from "@/lib/validation";
 import { AppError } from "@/lib/errors";
@@ -9,9 +10,7 @@ import { AppError } from "@/lib/errors";
 export const GET = handle(async (req: NextRequest) => {
   const slug = req.nextUrl.searchParams.get("org");
   const departmentId = req.nextUrl.searchParams.get("department") || undefined;
-  const user = await getUser();
-  const orgId = slug ? (await prisma.organization.findUnique({ where: { slug } }))?.id : user?.organizationId;
-  if (!orgId) throw new AppError("NOT_FOUND", "Organization not found", 404);
+  const { orgId, user } = await readableOrg(slug);
   const isStaff = user?.organizationId === orgId;
 
   const officers = await prisma.officerProfile.findMany({

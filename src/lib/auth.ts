@@ -25,7 +25,8 @@ export async function verifyPassword(pw: string, hash: string) {
 }
 
 export async function createSession(userId: string) {
-  const jwt = await new SignJWT({})
+  const { sessionVersion } = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { sessionVersion: true } });
+  const jwt = await new SignJWT({ sv: sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -77,7 +78,8 @@ export async function getUser(): Promise<SessionUser | null> {
         paFor: { select: { id: true, user: { select: { name: true } } } },
       },
     });
-    if (!u || !u.isActive) return null;
+    // A password change, reset or deactivation bumps sessionVersion and ends older sessions
+    if (!u || !u.isActive || payload.sv !== u.sessionVersion) return null;
     return {
       id: u.id,
       name: u.name,

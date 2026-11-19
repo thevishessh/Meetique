@@ -16,7 +16,7 @@ export const GET = handle(async (_req: Request, { params }: { params: Promise<{ 
   if (!t) return fail(404, "INVALID_TOKEN", "Token not found");
   const a = t.appointment;
   const tz = a.organization.timezone;
-  const isStaff = user?.organizationId === a.organizationId;
+  const isStaff = !!user && !user.mustChangePassword && user.organizationId === a.organizationId;
   if (!isStaff && !parseScan(raw).qrSecret) return fail(404, "INVALID_TOKEN", "Token not found"); // token numbers are guessable: staff only
 
   return ok({

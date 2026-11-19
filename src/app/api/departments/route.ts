@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getUser, requireApiUser } from "@/lib/auth";
+import { requireApiUser } from "@/lib/auth";
+import { readableOrg } from "@/lib/org-access";
 import { fail, handle, ok, readJson } from "@/lib/api";
 import { departmentSchema } from "@/lib/validation";
 
 export const GET = handle(async (req: NextRequest) => {
   const slug = req.nextUrl.searchParams.get("org");
-  const orgId = slug ? (await prisma.organization.findUnique({ where: { slug } }))?.id : (await getUser())?.organizationId;
-  if (!orgId) return fail(404, "NOT_FOUND", "Organization not found");
+  const { orgId } = await readableOrg(slug);
   return ok(await prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }));
 });
 

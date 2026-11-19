@@ -23,7 +23,7 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
   if (profile.maxDurationMin !== undefined) profile.maxDurationMin = Math.max(profile.maxDurationMin, profile.slotDurationMin ?? officer.slotDurationMin);
   await prisma.$transaction([
     prisma.officerProfile.update({ where: { id: officer.id }, data: { ...profile, departmentId: d.departmentId === undefined ? undefined : d.departmentId || null } }),
-    prisma.user.update({ where: { id: officer.userId }, data: { name, phone, isActive, employeeId } }),
+    prisma.user.update({ where: { id: officer.userId }, data: { name, phone, isActive, employeeId, ...(isActive === false ? { sessionVersion: { increment: 1 } } : {}) } }),
   ]);
   return ok({ ok: true });
 });
@@ -32,7 +32,7 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
 export const DELETE = handle(async (_req: Request, { params }: Ctx) => {
   const user = await requireApiUser("ADMIN");
   const officer = await resolveOfficer(user, (await params).id);
-  await prisma.user.update({ where: { id: officer.userId }, data: { isActive: false } });
+  await prisma.user.update({ where: { id: officer.userId }, data: { isActive: false, sessionVersion: { increment: 1 } } });
   await prisma.officerProfile.update({ where: { id: officer.id }, data: { isBookable: false } });
   return ok({ ok: true });
 });

@@ -22,6 +22,7 @@ export const POST = handle(async (req: Request) => {
     // Walk-in registered at reception: name + mobile + L Code from the form
     actor = await requireApiUser();
     if (!canUseReception(actor) && actor.role !== "OFFICER") throw new AppError("FORBIDDEN", "You do not have access to the reception desk", 403);
+    if (actor.role === "OFFICER" && d.officerId !== actor.officerId) throw new AppError("FORBIDDEN", "Officers can register walk-ins only for their own queue", 403);
     if (actor.role === "STAFF" && d.officerId !== receptionScope(actor)) throw new AppError("FORBIDDEN", `As PA you can register walk-ins only for ${actor.pa?.officerName}`, 403);
     if (!d.name || !d.phone) throw new AppError("VALIDATION", "Name and mobile number are required", 422);
     if (!d.lCode) throw new AppError("VALIDATION", "L Code is required", 422);

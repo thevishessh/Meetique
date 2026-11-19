@@ -30,6 +30,8 @@ export const PATCH = handle(async (req: Request, { params }: Ctx) => {
       departmentId: d.departmentId,
       paOfficerId: d.paOfficerId,
       ...(d.password ? { passwordHash: await hashPassword(d.password), mustChangePassword: true, failedLoginCount: 0, lockedUntil: null } : {}),
+      // A reset or deactivation signs the person out everywhere
+      ...(d.password || d.isActive === false ? { sessionVersion: { increment: 1 } } : {}),
     },
   });
   if (target.role === "OFFICER" && d.isActive === false) await prisma.officerProfile.updateMany({ where: { userId: id }, data: { isBookable: false } });

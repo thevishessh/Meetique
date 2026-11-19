@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { getUser } from "@/lib/auth";
+import { getUser, requireApiUser } from "@/lib/auth";
+import { safeEqual } from "@/lib/safe-equal";
 import { fail, handle, ok, readJson } from "@/lib/api";
 import { changeStatus } from "@/lib/booking";
 import { notifyAppointment } from "@/lib/notify";
@@ -12,18 +13,18 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
   const a = await prisma.appointment.findUnique({ where: { id } });
   if (!a) return fail(404, "NOT_FOUND", "Appointment not found");
 
-  if (body.code && body.code === a.manageCode) {
+  if (safeEqual(body.code, a.manageCode)) {
     if (a.status !== "BOOKED" && a.status !== "PENDING") return fail(409, "NOT_ALLOWED", "Only upcoming appointments can be cancelled");
     if (a.startAt <= new Date()) return fail(409, "NOT_ALLOWED", "This appointment time has already passed");
     await changeStatus(id, "CANCELLED", null, body.note || "Cancelled by visitor");
   } else {
-    const user = await getUser();
-    if (!user) return fail(404, "NOT_FOUND", "Appointment not found");
+    // Staff path: same checks as every other API, including a pending password change
+    const user = await requireApiUser();
     await changeStatus(id, "CANCELLED", user, body.note);
   }
   void notifyAppointment(id, "CANCELLED");
   const v = await prisma.visitor.findUnique({ where: { id: a.visitorId }, select: { userId: true } });
-  const actorId = body.code && body.code === a.manageCode ? v?.userId ?? null : (await getUser())?.id ?? null;
+  const actorId = safeEqual(body.code, a.manageCode) ? v?.userId ?? null : (await getUser())?.id ?? null;
   void meetingEvent(id, "CANCELLED", actorId);
   return ok({ ok: true });
 });

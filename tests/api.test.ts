@@ -62,12 +62,48 @@ describe("API over HTTP", () => {
     assert.equal(r.status, 401);
   });
 
-  test("five wrong passwords lock the account, even for the right one", async (t) => {
+  test("five wrong passwords lock the account, and the answer never reveals it", async (t) => {
     if (!up) return t.skip("app not running");
     const c = client();
-    for (let i = 0; i < 4; i++) assert.equal((await c.login("locked", "wrong")).status, 401);
-    assert.equal((await c.login("locked", "wrong")).status, 423);
-    assert.equal((await c.login("locked")).status, 423);
+    for (let i = 0; i < 5; i++) assert.equal((await c.login("locked", "wrong")).status, 401);
+    const locked = await c.login("locked");
+    assert.equal(locked.status, 401, "the right password is refused while locked");
+    const unknown = await c.login("nobody");
+    assert.equal(locked.json.error.message, unknown.json.error.message, "locked and unknown look the same");
+  });
+
+  test("changing the password signs out other sessions", async (t) => {
+    if (!up) return t.skip("app not running");
+    const a = client(), b = client();
+    await a.login("staff");
+    await b.login("staff");
+    assert.equal((await a.call("/api/notifications")).status, 200);
+    assert.equal((await b.call("/api/auth/password", { body: { currentPassword: PW, newPassword: "Moved@2026" } })).status, 200);
+    assert.equal((await a.call("/api/notifications")).status, 401, "old session ends");
+    assert.equal((await b.call("/api/notifications")).status, 200, "the browser that changed it stays in");
+    await b.call("/api/auth/password", { body: { currentPassword: "Moved@2026", newPassword: PW } });
+  });
+
+  test("push alerts accept only real push services", async (t) => {
+    if (!up) return t.skip("app not running");
+    const c = client();
+    await c.login("desk");
+    const keys = { p256dh: "BOr7test_p256dh_key_000000000000000000000000000000000000", auth: "testAuthKey00000" };
+    assert.equal((await c.call("/api/push/subscribe", { body: { endpoint: "http://169.254.169.254/latest", keys } })).status, 422);
+    assert.equal((await c.call("/api/push/subscribe", { body: { endpoint: "https://internal.example.com/x", keys } })).status, 422);
+    const ok = await c.call("/api/push/subscribe", { body: { endpoint: `https://fcm.googleapis.com/fcm/send/test-${tag}`, keys } });
+    assert.equal(ok.status, 200);
+  });
+
+  test("internal mode: booking lists need a sign-in; pages send security headers", async (t) => {
+    if (!up) return t.skip("app not running");
+    if (process.env.PUBLIC_BOOKING !== "false") return t.skip("public booking mode");
+    const anon = client();
+    assert.equal((await anon.call(`/api/officers?org=test-api-${tag}`)).status, 401);
+    assert.equal((await anon.call(`/api/departments?org=test-api-${tag}`)).status, 401);
+    const r = await fetch(BASE + "/login");
+    assert.equal(r.headers.get("x-frame-options"), "DENY");
+    assert.equal(r.headers.get("x-content-type-options"), "nosniff");
   });
 
   test("a temporary password must be replaced before anything else works", async (t) => {

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { handle, ok, readJson } from "@/lib/api";
+import { fail, handle, ok, readJson } from "@/lib/api";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 
 const sub = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(8).max(100) }) });
 
@@ -9,6 +10,7 @@ const sub = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p2
 export const POST = handle(async (req: Request) => {
   const user = await requireApiUser();
   const d = sub.parse(await readJson(req));
+  if (!isAllowedPushEndpoint(d.endpoint)) return fail(422, "BAD_ENDPOINT", "This browser’s push service is not supported");
   const ua = req.headers.get("user-agent")?.slice(0, 200) ?? null;
   await prisma.pushSubscription.upsert({
     where: { endpoint: d.endpoint },

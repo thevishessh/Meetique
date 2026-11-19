@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getUser } from "@/lib/auth";
+import { readableOrg } from "@/lib/org-access";
 import { fail, handle, ok } from "@/lib/api";
 import { getDaySlots } from "@/lib/slots";
 import { isValidDate } from "@/lib/time";
@@ -13,6 +14,8 @@ export const GET = handle(async (req: NextRequest) => {
   if (!isValidDate(date)) return fail(422, "VALIDATION", "date must be yyyy-MM-dd");
   const officer = await prisma.officerProfile.findUnique({ where: { id: officerId } });
   if (!officer) return fail(404, "NOT_FOUND", "Officer not found");
+  const org = await prisma.organization.findUniqueOrThrow({ where: { id: officer.organizationId }, select: { slug: true } });
+  await readableOrg(org.slug);
 
   let staffOverride = false;
   if (sp.get("staff") === "1") {

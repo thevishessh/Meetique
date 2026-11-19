@@ -1,6 +1,7 @@
 import "server-only";
 import { sendNotification, setVapidDetails } from "web-push";
 import { prisma } from "./db";
+import { isAllowedPushEndpoint } from "./push-endpoint";
 
 export type PushPayload = { title: string; body: string; url?: string; urgent?: boolean; tag?: string };
 
@@ -17,7 +18,7 @@ function setup(): boolean {
 /** Sends a push to every device the user has enabled. Dead subscriptions are removed. */
 export async function sendPush(userId: string, payload: PushPayload): Promise<number> {
   if (!setup()) return 0;
-  const subs = await prisma.pushSubscription.findMany({ where: { userId } });
+  const subs = (await prisma.pushSubscription.findMany({ where: { userId } })).filter((s) => isAllowedPushEndpoint(s.endpoint));
   let sent = 0;
   await Promise.all(
     subs.map(async (s) => {
